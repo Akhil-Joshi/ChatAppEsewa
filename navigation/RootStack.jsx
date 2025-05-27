@@ -1,10 +1,11 @@
 // App.js
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-// import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator  } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import Icon from 'react-native-vector-icons/Ionicons';
+import AuthStack from './AuthStack';
 
 import ChatStack from './ChatStack';
 import DMStack from './DMStack';
@@ -14,6 +15,7 @@ import GroupStack from './GroupsStack';
 // import SettingsScreen from '../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
 const TabNavigator = () => {
   const { colors } = useTheme();
@@ -65,7 +67,11 @@ const TabNavigator = () => {
 const RootNavigation = () => {
   return (
     <SafeAreaProvider>
-      <TabNavigator />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="AuthStack" component={AuthStack} options={{headerShown: false}} />
+        <Stack.Screen name="Main" component={TabNavigator} options={{headerShown: false}} />
+      </Stack.Navigator>
+      {/* <TabNavigator /> */}
     </SafeAreaProvider>
   );
 };
