@@ -59,7 +59,6 @@ from .serializers import (
     UserRegistrationSerializer,
     EmailVerificationSerializer,
     LoginSerializer,
-    LoginOTPVerificationSerializer,
     ResendOTPSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
@@ -165,7 +164,7 @@ class EmailVerificationView(APIView):
 class LoginView(APIView):
     """
     User Login API (Step 1)
-    POST: Verify credentials and send login OTP
+    POST: Verify credentials and return JWT tokens
     """
     permission_classes = [AllowAny]
     
@@ -174,67 +173,13 @@ class LoginView(APIView):
         if serializer.is_valid():
             user = serializer.validated_data['user']
             
-            # Invalidate any existing login OTPs
-            OTP.objects.filter(user=user, purpose='login', is_used=False).update(is_used=True)
-            
-            # Create and send new login OTP
-            otp = OTP.objects.create(user=user, purpose='login')
-            email_sent = otp.send_otp_email()
-            
-            if email_sent:
-                return Response(
-                    {
-                        'success': True,
-                        'message': 'OTP sent to your email. Please verify to complete login.',
-                        'data': {
-                            'email': user.email,
-                            'next_step': 'verify_login_otp'
-                        }
-                    }, 
-                    status=status.HTTP_200_OK
-                )
-            else:
-                return Response(
-                    {
-                        'success': False,
-                        'message': 'Failed to send OTP. Please try again.',
-                    }, 
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        else:
-            return Response(
-                {
-                    'success': False,
-                    'message': 'Login failed',
-                    'errors': serializer.errors
-                }, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-
-class LoginOTPVerificationView(APIView):
-    """
-    Login OTP Verification API (Step 2)
-    POST: Verify login OTP and complete authentication
-    """
-    permission_classes = [AllowAny]
-    
-    def post(self, request, format=None):
-        serializer = LoginOTPVerificationSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-            otp = serializer.validated_data['otp']
-            
-            # Mark OTP as used
-            otp.mark_as_used()
-            
-            # Generate JWT tokens
+            # Generate JWT tokens directly (no OTP)
             tokens = get_tokens_for_user(user)
             
             return Response(
                 {
                     'success': True,
-                    'message': 'Login successful',
+                    'message': 'Login successful.',
                     'data': {
                         'user': {
                             'id': user.id,
@@ -252,17 +197,19 @@ class LoginOTPVerificationView(APIView):
             return Response(
                 {
                     'success': False,
-                    'message': 'OTP verification failed',
+                    'message': 'Login failed',
                     'errors': serializer.errors
                 }, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 
 
+
+
 class ResendOTPView(APIView):
     """
     Resend OTP API
-    POST: Resend OTP for registration, login, or password reset
+    POST: Resend OTP for registration or password reset
     """
     permission_classes = [AllowAny]
     
@@ -271,6 +218,16 @@ class ResendOTPView(APIView):
         if serializer.is_valid():
             user = serializer.validated_data['user']
             purpose = serializer.validated_data['purpose']
+
+            # Only allow 'registration' or 'password_reset' as valid purposes
+            if purpose not in ['registration', 'password_reset']:
+                return Response(
+                    {
+                        'success': False,
+                        'message': 'Invalid purpose. Only registration and password reset are allowed.',
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
             # Invalidate previous OTPs of same purpose
             OTP.objects.filter(user=user, purpose=purpose, is_used=False).update(is_used=True)
