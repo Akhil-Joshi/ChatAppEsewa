@@ -183,13 +183,6 @@ SIMPLE_JWT = {
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-# # Gmail SMTP Configuration (replace with your email provider)
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'nishilmaharjan22@gmail.com'  # Your email address
-# EMAIL_HOST_PASSWORD = 'njhqqndljoiqrggp'  # Your app password (not regular password)
-# DEFAULT_FROM_EMAIL = 'nishilmaharjn22@gmail.com'
 
 EMAIL_HOST = config('EMAIL_HOST')
 EMAIL_PORT = config('EMAIL_PORT', cast=int)
