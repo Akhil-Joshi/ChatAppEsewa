@@ -50,7 +50,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import login
 from django.utils import timezone
@@ -81,6 +81,8 @@ class UserRegistrationView(APIView):
     User Registration API
     POST: Register new user and send email verification OTP
     """
+
+    permission_classes = [AllowAny]  # <- Add this
     
     def post(self, request, format=None):
         serializer = UserRegistrationSerializer(data=request.data)
@@ -113,6 +115,7 @@ class EmailVerificationView(APIView):
     Email Verification API
     POST: Verify email using OTP and activate account
     """
+    permission_classes = [AllowAny]
     
     def post(self, request, format=None):
         serializer = EmailVerificationSerializer(data=request.data)
@@ -162,6 +165,7 @@ class LoginView(APIView):
     User Login API (Step 1)
     POST: Verify credentials and send login OTP
     """
+    permission_classes = [AllowAny]
     
     def post(self, request, format=None):
         serializer = LoginSerializer(data=request.data, context={'request': request})
@@ -211,6 +215,7 @@ class LoginOTPVerificationView(APIView):
     Login OTP Verification API (Step 2)
     POST: Verify login OTP and complete authentication
     """
+    permission_classes = [AllowAny]
     
     def post(self, request, format=None):
         serializer = LoginOTPVerificationSerializer(data=request.data)
@@ -257,6 +262,7 @@ class ResendOTPView(APIView):
     Resend OTP API
     POST: Resend OTP for registration, login, or password reset
     """
+    permission_classes = [AllowAny]
     
     def post(self, request, format=None):
         serializer = ResendOTPSerializer(data=request.data)
@@ -307,6 +313,7 @@ class PasswordResetRequestView(APIView):
     Password Reset Request API
     POST: Send password reset OTP to user's email
     """
+    permission_classes = [AllowAny]
     
     def post(self, request, format=None):
         serializer = PasswordResetRequestSerializer(data=request.data)
@@ -357,6 +364,7 @@ class PasswordResetConfirmView(APIView):
     Password Reset Confirmation API
     POST: Verify OTP and set new password
     """
+    permission_classes = [AllowAny]
     
     def post(self, request, format=None):
         serializer = PasswordResetConfirmSerializer(data=request.data)
@@ -402,7 +410,7 @@ class UserProfileView(APIView):
     GET: Get user profile information
     PUT: Update user profile information
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def get(self, request, format=None):
         serializer = UserProfileSerializer(request.user)

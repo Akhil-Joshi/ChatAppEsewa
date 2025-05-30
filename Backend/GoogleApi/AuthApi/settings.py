@@ -187,12 +187,10 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'nishil.maja@gmail.com'  # Your email address
-EMAIL_HOST_PASSWORD = '9861610632'  # Your app password (not regular password)
-DEFAULT_FROM_EMAIL = 'nishil.maja@gmail.com'
+EMAIL_HOST_USER = 'nishilmaharjan22@gmail.com'  # Your email address
+EMAIL_HOST_PASSWORD = 'njhqqndljoiqrggp'  # Your app password (not regular password)
+DEFAULT_FROM_EMAIL = 'nishilmaharjn22@gmail.com'
 
-# For development, you can use console backend to see emails in console
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # CORS Configuration (Optional - for frontend integration)
 CORS_ALLOWED_ORIGINS = [
