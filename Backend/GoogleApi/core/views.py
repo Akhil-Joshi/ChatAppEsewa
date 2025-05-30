@@ -52,6 +52,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import login
 from django.utils import timezone
 from .serializers import (
@@ -62,7 +63,8 @@ from .serializers import (
     ResendOTPSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
-    UserProfileSerializer
+    UserProfileSerializer,
+    CustomTokenObtainPairSerializer
 )
 from .models import User, OTP
 
@@ -364,7 +366,7 @@ class PasswordResetConfirmView(APIView):
     Password Reset Confirmation API
     POST: Verify OTP and set new password
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     
     def post(self, request, format=None):
         serializer = PasswordResetConfirmSerializer(data=request.data)
@@ -500,3 +502,6 @@ class CleanupExpiredOTPsView(APIView):
             }, 
             status=status.HTTP_200_OK
         )
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

@@ -12,7 +12,8 @@ from .views import (
     PasswordResetConfirmView,
     UserProfileView,
     LogoutView,
-    CleanupExpiredOTPsView
+    CleanupExpiredOTPsView,
+    CustomTokenObtainPairView
 )
 
 # App name for namespacing
@@ -37,7 +38,8 @@ urlpatterns = [
     path('profile/', UserProfileView.as_view(), name='user-profile'),
     
     # JWT Token URLs
-    path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
+    path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
     # Admin/Utility URLs
     path('cleanup-otps/', CleanupExpiredOTPsView.as_view(), name='cleanup-otps'),
@@ -72,7 +74,7 @@ Admin/Utility:
 
 Usage Examples:
 
-1. User Registration:
+1. User Registration:✅
 POST /auth/register/
 {
     "email": "user@example.com",
@@ -81,41 +83,41 @@ POST /auth/register/
     "password2": "securepassword123"
 }
 
-2. Email Verification:
+2. Email Verification:✅
 POST /auth/verify-email/
 {
     "email": "user@example.com",
     "otp_code": "123456"
 }
 
-3. Login Step 1:
+3. Login Step 1:✅
 POST /auth/login/
 {
     "email": "user@example.com",
     "password": "securepassword123"
 }
 
-4. Login Step 2:
+4. Login Step 2:✅
 POST /auth/login/verify-otp/
 {
     "email": "user@example.com",
     "otp_code": "654321"
 }
 
-5. Resend OTP:
+5. Resend OTP:✅
 POST /auth/resend-otp/
 {
     "email": "user@example.com",
     "purpose": "registration"  // or "login" or "password_reset"
 }
 
-6. Password Reset Request:
+6. Password Reset Request:✅
 POST /auth/password-reset/
 {
     "email": "user@example.com"
 }
 
-7. Password Reset Confirm:
+7. Password Reset Confirm:✅
 POST /auth/password-reset/confirm/
 {
     "email": "user@example.com",
@@ -124,11 +126,11 @@ POST /auth/password-reset/confirm/
     "new_password2": "newsecurepassword123"
 }
 
-8. Get Profile (requires authentication):
+8. Get Profile (requires authentication):✅
 GET /auth/profile/
 Headers: Authorization: Bearer <access_token>
 
-9. Update Profile (requires authentication):
+9. Update Profile (requires authentication):✅
 PUT /auth/profile/
 Headers: Authorization: Bearer <access_token>
 {
@@ -136,14 +138,14 @@ Headers: Authorization: Bearer <access_token>
     "last_name": "Smith"
 }
 
-10. Logout (requires authentication):
+10. Logout (requires authentication):✅
 POST /auth/logout/
 Headers: Authorization: Bearer <access_token>
 {
     "refresh_token": "<refresh_token>"
 }
 
-11. Refresh Token:
+11. Refresh Token:✅
 POST /auth/token/refresh/
 {
     "refresh": "<refresh_token>"

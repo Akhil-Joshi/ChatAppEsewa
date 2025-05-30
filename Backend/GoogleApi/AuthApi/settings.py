@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 MIDDLEWARE = [
@@ -44,6 +45,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'AuthApi.urls'
+AUTH_USER_MODEL = 'core.User'
 
 TEMPLATES = [
     {
