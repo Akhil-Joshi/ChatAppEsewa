@@ -1,21 +1,83 @@
 // screens/HomeScreen.js
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../contexts/ThemeContext';
 import { TextInput } from 'react-native-gesture-handler';
+import { useAuth } from '../../contexts/AuthContext';
 
 const HomeScreen = ({ navigation }) => {
   const { colors, theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
-  
+  const { logout } = useAuth();
+  const [fullName, setFullName] = useState('');
+  const [profileImage, setProfileImage] = useState(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const name = await AsyncStorage.getItem('@full_name');
+        const profilePic = await AsyncStorage.getItem('@profile_image');
+        if (name) setFullName(name);
+        if (profilePic) setProfileImage(profilePic);
+      } catch (e) {
+        console.error('Failed to load user data:', e);
+      }
+    };
+    fetchUserData();
+  }, []);
+
+  const handleProfilePress = () => {
+    // Navigate to profile screen or show profile options
+    navigation.navigate('Profile');
+
+  };
+
+  const handlelogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear all stored user data from AsyncStorage
+              await AsyncStorage.multiRemove([
+                '@user_id',
+                '@email',
+                '@full_name',
+                '@access_token',
+                '@refresh_token'
+              ]);
+
+              // Update auth context - this will set isLoggedIn to false
+              await logout();
+
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'An error occurred while logging out. Please try again.');
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
   // Tab state
   const [activeTab, setActiveTab] = useState('direct');
-  
+
   // Debug log to check if theme is changing
   console.log('Current theme:', theme, 'isDarkMode:', isDarkMode);
-  
+
   const directContacts = [
     { id: '1', name: 'Phillip Franci', avatar: 'https://i.pravatar.cc/150?img=1', lastMessage: 'Hey, it\'s been a while since we\'ve...', time: '10:00 am', read: false },
     { id: '2', name: 'Alfredo Saris', avatar: 'https://i.pravatar.cc/150?img=2', lastMessage: 'Hello, Good Morning Bro!', time: '09:00 am', read: false },
@@ -45,11 +107,11 @@ const HomeScreen = ({ navigation }) => {
 
   const getCurrentTitle = () => {
     const data = getCurrentData();
-    return activeTab === 'direct' 
-      ? `Direct Messages(${data.length})` 
+    return activeTab === 'direct'
+      ? `Direct Messages(${data.length})`
       : `Group Chats(${data.length})`;
   };
-  
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -71,10 +133,39 @@ const HomeScreen = ({ navigation }) => {
       alignItems: 'center',
       marginBottom: 10,
     },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    profilePicture: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      marginRight: 12,
+      borderWidth: 2,
+      borderColor: 'rgba(255,255,255,0.3)',
+    },
+    profileFallback: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      marginRight: 12,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: 'rgba(255,255,255,0.3)',
+    },
     headerTitle: {
       fontSize: 16,
       color: '#fff',
       opacity: 0.8,
+      flex: 1,
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     themeToggleButton: {
       padding: 8,
@@ -249,22 +340,22 @@ const HomeScreen = ({ navigation }) => {
     readIndicator: {
       marginLeft: 10,
     },
-    // fab: {
-    //   position: 'absolute',
-    //   right: 20,
-    //   bottom: 20,
-    //   backgroundColor: colors.primary,
-    //   width: 60,
-    //   height: 60,
-    //   borderRadius: 30,
-    //   justifyContent: 'center',
-    //   alignItems: 'center',
-    //   elevation: 5,
-    // },
+    fab: {
+      position: 'absolute',
+      right: 20,
+      bottom: 20,
+      backgroundColor: colors.primary,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      justifyContent: 'center',
+      alignItems: 'center',
+      elevation: 5,
+    },
   });
 
   const renderAvatarItem = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.avatarContainer}
       onPress={() => navigation.navigate('Chat', { id: item.id, name: item.name, avatar: item.avatar })}
     >
@@ -274,13 +365,13 @@ const HomeScreen = ({ navigation }) => {
   );
 
   const renderMessageItem = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.messageItem}
-      onPress={() => navigation.navigate('Chat', { 
-        id: item.id, 
-        name: item.name, 
+      onPress={() => navigation.navigate('Chat', {
+        id: item.id,
+        name: item.name,
         avatar: item.avatar,
-        isGroup: item.isGroup || false 
+        isGroup: item.isGroup || false
       })}
     >
       <View style={styles.messageAvatar}>
@@ -322,28 +413,43 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.mainContainer}>
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <Text style={styles.headerTitle}>Hi, Akhil!</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <TouchableOpacity 
+            <View style={styles.headerLeft}>
+              <TouchableOpacity onPress={handleProfilePress}>
+                {profileImage ? (
+                  <Image 
+                    source={{ uri: profileImage }} 
+                    style={styles.profilePicture}
+                    onError={() => setProfileImage(null)}
+                  />
+                ) : (
+                  <View style={styles.profileFallback}>
+                    <Icon name="person" size={20} color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Hi, {fullName || 'User'}!</Text>
+            </View>
+            <View style={styles.headerRight}>
+              <TouchableOpacity
                 onPress={() => {
                   console.log('Theme toggle pressed, current theme:', theme);
                   toggleTheme();
-                }} 
+                }}
                 style={styles.themeToggleButton}
               >
-                <Icon 
-                  name={isDarkMode ? "sunny" : "moon"} 
-                  size={20} 
-                  color="#fff" 
+                <Icon
+                  name={isDarkMode ? "sunny" : "moon"}
+                  size={20}
+                  color="#fff"
                 />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.menuButton}>
-                <Icon name="ellipsis-vertical" size={24} color="#fff" />
+              <TouchableOpacity style={styles.menuButton} onPress={handlelogout}>
+                <Icon name='exit-outline' size={28} color='#fff' />
               </TouchableOpacity>
             </View>
           </View>
           <Text style={styles.contactListTitle}>Friends List</Text>
-          
+
           <FlatList
             data={contactAvatars}
             renderItem={renderAvatarItem}
@@ -353,7 +459,7 @@ const HomeScreen = ({ navigation }) => {
             style={styles.avatarScrollView}
           />
         </View>
-        
+
         <View style={styles.searchContainer}>
           <View style={styles.searchButton}>
             <Icon name="search" size={20} color={colors.text} />
@@ -364,12 +470,12 @@ const HomeScreen = ({ navigation }) => {
             />
           </View>
         </View>
-        
+
         {/* Tab Navigator */}
         <View style={styles.tabContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.tab, 
+              styles.tab,
               activeTab === 'direct' ? styles.activeTab : styles.inactiveTab
             ]}
             onPress={() => setActiveTab('direct')}
@@ -381,10 +487,10 @@ const HomeScreen = ({ navigation }) => {
               Direct Messages
             </Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[
-              styles.tab, 
+              styles.tab,
               activeTab === 'group' ? styles.activeTab : styles.inactiveTab
             ]}
             onPress={() => setActiveTab('group')}
@@ -397,7 +503,7 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={{ flex: 1, marginHorizontal: 20 }}>
           <Text style={styles.sectionTitle}>{getCurrentTitle()}</Text>
           <FlatList
@@ -407,10 +513,10 @@ const HomeScreen = ({ navigation }) => {
             showsVerticalScrollIndicator={false}
           />
         </View>
-        
-        {/* <TouchableOpacity style={styles.fab}>
-          <Icon name="add" size={30} color="#fff" />
-        </TouchableOpacity> */}
+        {/* add friend icon */}
+        <TouchableOpacity style={styles.fab}>
+          <Icon name="person-add" size={25} color="#fff" style={{ justifyContent: 'center', alignItems: 'center', }} />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

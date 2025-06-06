@@ -16,13 +16,20 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { login } from '../../helpers/postAPIs';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
-export default function Login({navigation}) {
-  
+export default function Login({ navigation, route }) {
+
+  const { login: authLogin } = useAuth();
+
+
   // Form state
-  const [email, setEmail] = useState('');
+  const initialEmail = route?.params?.email || '';
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,54 +64,77 @@ export default function Login({navigation}) {
     ]).start();
   }, []);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
+const handleLogin = async () => {
+  if (!email || !password) {
+    Alert.alert('Error', 'Please fill in all fields');
+    return;
+  }
 
-    // Button press animation
-    Animated.sequence([
-      Animated.timing(buttonScaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonScaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
+  // Button press animation
+  Animated.sequence([
+    Animated.timing(buttonScaleAnim, {
+      toValue: 0.95,
+      duration: 100,
+      useNativeDriver: true,
+    }),
+    Animated.timing(buttonScaleAnim, {
+      toValue: 1,
+      duration: 100,
+      useNativeDriver: true,
+    }),
+  ]).start();
 
-    setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      // Navigate to main app or handle login logic
-      navigation.navigate('Main'); // Replace with your home screen
-    }, 2000);
-  };
+  setIsLoading(true);
+
+  try {
+    const payload = {
+      email: email,
+      password: password
+    };
+    const response = await login(payload);
+
+    const { user, tokens } = response.data;
+
+    // Store data in AsyncStorage
+    await AsyncStorage.multiSet([
+      ['@user_id', user.id.toString()],
+      ['@email', user.email],
+      ['@full_name', user.full_name],
+      ['@access_token', tokens.access],
+      ['@refresh_token', tokens.refresh],
+    ]);
+
+    // Update the AuthContext state
+    await authLogin(tokens.access);
+
+    setIsLoading(false);
+    // navigation.navigate('Main');
+  } catch (error) {
+    setIsLoading(false);
+    // Handle error
+    console.log(error, "Error occurred");
+    Alert.alert('Error', 'Something went wrong. Please try again later!');
+  }
+};
 
   const handleForgotPassword = () => {
-    Alert.alert('Forgot Password', 'Password reset link will be sent to your email');
+    navigation.navigate('ForgotPassword');
   };
 
-  const handleSocialLogin = (provider) => {
-    Alert.alert('Social Login', `${provider} login will be implemented`);
-  };
+  // const handleSocialLogin = (provider) => {
+  //   Alert.alert('Social Login', `${provider} login will be implemented`);
+  // };
 
   return (
-    <LinearGradient 
-      colors={['#667eea', '#764ba2', '#5D50FE']} 
+    <LinearGradient
+      colors={['#667eea', '#764ba2', '#5D50FE']}
       style={styles.gradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
       <SafeAreaView style={styles.container}>
         {/* <StatusBar barStyle="light-content" backgroundColor="#5D50FE" /> */}
-        
+
         {/* Floating Decorative Elements */}
         <View style={styles.decorativeContainer}>
           <Animated.View style={[styles.floatingCircle, styles.circle1, { opacity: fadeAnim }]} />
@@ -112,17 +142,17 @@ export default function Login({navigation}) {
           <Animated.View style={[styles.floatingCircle, styles.circle3, { opacity: fadeAnim }]} />
         </View>
 
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.keyboardContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <ScrollView 
+          <ScrollView
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
             {/* Header */}
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.header,
                 {
@@ -131,13 +161,13 @@ export default function Login({navigation}) {
                 }
               ]}
             >
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => navigation.navigate('Welcome')}
               >
                 <Ionicons name="arrow-back" size={24} color="#fff" />
               </TouchableOpacity>
-              
+
               <View style={styles.headerContent}>
                 <Text style={styles.title}>Welcome Back!</Text>
                 <Text style={styles.subtitle}>Sign in to continue your conversations</Text>
@@ -145,7 +175,7 @@ export default function Login({navigation}) {
             </Animated.View>
 
             {/* Login Form */}
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.formContainer,
                 {
@@ -198,21 +228,21 @@ export default function Login({navigation}) {
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => setShowPassword(!showPassword)}
                       style={styles.eyeButton}
                     >
-                      <Ionicons 
-                        name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                        size={20} 
-                        color="#999" 
+                      <Ionicons
+                        name={showPassword ? "eye-off-outline" : "eye-outline"}
+                        size={20}
+                        color="#999"
                       />
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 {/* Forgot Password */}
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.forgotPassword}
                   onPress={handleForgotPassword}
                 >
@@ -293,6 +323,7 @@ export default function Login({navigation}) {
     </LinearGradient>
   );
 }
+
 
 const styles = StyleSheet.create({
   gradient: {

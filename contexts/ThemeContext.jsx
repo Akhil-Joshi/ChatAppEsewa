@@ -1,5 +1,6 @@
 // contexts/ThemeContext.js
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ThemeContext = createContext();
 
@@ -7,9 +8,49 @@ export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState('light');
+  const [isLoading, setIsLoading] = useState(true);
   
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
+  // Load theme from AsyncStorage on app start
+  useEffect(() => {
+    loadTheme();
+  }, []);
+  
+  const loadTheme = async () => {
+    try {
+      const savedTheme = await AsyncStorage.getItem('theme');
+      if (savedTheme) {
+        setTheme(savedTheme);
+      }
+    } catch (error) {
+      console.error('Error loading theme from AsyncStorage:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Save theme to AsyncStorage whenever it changes
+  const saveTheme = async (newTheme) => {
+    try {
+      await AsyncStorage.setItem('theme', newTheme);
+    } catch (error) {
+      console.error('Error saving theme to AsyncStorage:', error);
+    }
+  };
+  
+  const toggleTheme = async () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    await saveTheme(newTheme);
+  };
+
+  // Function to clear theme (for logout)
+  const clearTheme = async () => {
+    try {
+      await AsyncStorage.removeItem('theme');
+      setTheme('light'); // Reset to default
+    } catch (error) {
+      console.error('Error clearing theme from AsyncStorage:', error);
+    }
   };
   
   const colors = {
@@ -40,7 +81,13 @@ export const ThemeProvider = ({ children }) => {
   };
   
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, colors: colors[theme] }}>
+    <ThemeContext.Provider value={{ 
+      theme, 
+      toggleTheme, 
+      clearTheme,
+      colors: colors[theme],
+      isLoading
+    }}>
       {children}
     </ThemeContext.Provider>
   );

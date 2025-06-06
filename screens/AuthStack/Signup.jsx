@@ -16,23 +16,26 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { registerUser } from '../../helpers/postAPIs';
 
 const { width, height } = Dimensions.get('window');
 
-export default function Signup({navigation}) {
-  
+export default function Signup({ navigation }) {
+
   // Form state
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
+    
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [focusedField, setFocusedField] = useState('');
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  // const [agreeToTerms, setAgreeToTerms] = useState(false);
+
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -71,44 +74,44 @@ export default function Signup({navigation}) {
 
   const validateForm = () => {
     const { fullName, email, password, confirmPassword } = formData;
-    
+
     if (!fullName.trim()) {
       Alert.alert('Error', 'Please enter your full name');
       return false;
     }
-    
+
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email address');
       return false;
     }
-    
+
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert('Error', 'Please enter a valid email address');
       return false;
     }
-    
+
     if (!password) {
       Alert.alert('Error', 'Please enter a password');
       return false;
     }
-    
+
     if (password.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters long');
       return false;
     }
-    
+
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return false;
     }
-    
-    if (!agreeToTerms) {
-      Alert.alert('Error', 'Please agree to the Terms of Service and Privacy Policy');
-      return false;
-    }
-    
+
+    // if (!agreeToTerms) {
+    //   Alert.alert('Error', 'Please agree to the Terms of Service and Privacy Policy');
+    //   return false;
+    // }
+
     return true;
   };
 
@@ -130,26 +133,33 @@ export default function Signup({navigation}) {
     ]).start();
 
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+
+    try {
+      const payload = {
+        email: formData.email,
+        full_name: formData.fullName,
+        password: formData.password,
+        confirm_password: formData.confirmPassword,
+      };
+      await registerUser(payload);
       setIsLoading(false);
-      Alert.alert(
-        'Success!', 
-        'Your account has been created successfully. Please check your email for verification.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Login')
-          }
-        ]
-      );
-    }, 2000);
+      navigation.navigate('OTPVerification', { email: formData.email });
+    } catch (error) {
+      // console.error("Registration error:", error);
+
+      // If it's an API response error (e.g., from axios)
+      const errorData = error;
+      const emailError = errorData?.errors?.email?.[0];
+      Alert.alert("Registration Failed", emailError || message);
+      setIsLoading(false);
+    }
+
+
   };
 
-  const handleSocialSignup = (provider) => {
-    Alert.alert('Social Signup', `${provider} signup will be implemented`);
-  };
+  // const handleSocialSignup = (provider) => {
+  //   Alert.alert('Social Signup', `${provider} signup will be implemented`);
+  // };
 
   const getPasswordStrength = (password) => {
     if (password.length === 0) return { text: '', color: '#ccc', width: '0%' };
@@ -162,15 +172,15 @@ export default function Signup({navigation}) {
   const passwordStrength = getPasswordStrength(formData.password);
 
   return (
-    <LinearGradient 
-      colors={['#667eea', '#764ba2', '#5D50FE']} 
+    <LinearGradient
+      colors={['#667eea', '#764ba2', '#5D50FE']}
       style={styles.gradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#5D50FE" />
-        
+
         {/* Floating Decorative Elements */}
         <View style={styles.decorativeContainer}>
           <Animated.View style={[styles.floatingCircle, styles.circle1, { opacity: fadeAnim }]} />
@@ -178,17 +188,17 @@ export default function Signup({navigation}) {
           <Animated.View style={[styles.floatingCircle, styles.circle3, { opacity: fadeAnim }]} />
         </View>
 
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.keyboardContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <ScrollView 
+          <ScrollView
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
             {/* Header */}
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.header,
                 {
@@ -197,13 +207,13 @@ export default function Signup({navigation}) {
                 }
               ]}
             >
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => navigation.navigate('Login')}
               >
                 <Ionicons name="arrow-back" size={24} color="#fff" />
               </TouchableOpacity>
-              
+
               <View style={styles.headerContent}>
                 <Text style={styles.title}>Create Account</Text>
                 <Text style={styles.subtitle}>Join ChatBox and start connecting with friends</Text>
@@ -211,7 +221,7 @@ export default function Signup({navigation}) {
             </Animated.View>
 
             {/* Signup Form */}
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.formContainer,
                 {
@@ -286,30 +296,30 @@ export default function Signup({navigation}) {
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => setShowPassword(!showPassword)}
                       style={styles.eyeButton}
                     >
-                      <Ionicons 
-                        name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                        size={20} 
-                        color="#999" 
+                      <Ionicons
+                        name={showPassword ? "eye-off-outline" : "eye-outline"}
+                        size={20}
+                        color="#999"
                       />
                     </TouchableOpacity>
                   </View>
-                  
+
                   {/* Password Strength Indicator */}
                   {formData.password.length > 0 && (
                     <View style={styles.passwordStrengthContainer}>
                       <View style={styles.passwordStrengthBar}>
-                        <View 
+                        <View
                           style={[
                             styles.passwordStrengthFill,
-                            { 
+                            {
                               width: passwordStrength.width,
-                              backgroundColor: passwordStrength.color 
+                              backgroundColor: passwordStrength.color
                             }
-                          ]} 
+                          ]}
                         />
                       </View>
                       <Text style={[styles.passwordStrengthText, { color: passwordStrength.color }]}>
@@ -339,25 +349,25 @@ export default function Signup({navigation}) {
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                       style={styles.eyeButton}
                     >
-                      <Ionicons 
-                        name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
-                        size={20} 
-                        color="#999" 
+                      <Ionicons
+                        name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                        size={20}
+                        color="#999"
                       />
                     </TouchableOpacity>
                   </View>
-                  
+
                   {/* Password Match Indicator */}
                   {formData.confirmPassword.length > 0 && (
                     <View style={styles.passwordMatchContainer}>
-                      <Ionicons 
-                        name={formData.password === formData.confirmPassword ? "checkmark-circle" : "close-circle"} 
-                        size={16} 
-                        color={formData.password === formData.confirmPassword ? "#2ed573" : "#ff4757"} 
+                      <Ionicons
+                        name={formData.password === formData.confirmPassword ? "checkmark-circle" : "close-circle"}
+                        size={16}
+                        color={formData.password === formData.confirmPassword ? "#2ed573" : "#ff4757"}
                       />
                       <Text style={[
                         styles.passwordMatchText,

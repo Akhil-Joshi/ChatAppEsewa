@@ -231,18 +231,18 @@ const DirectMessageScreen = ({ navigation }) => {
     readIndicator: {
       marginLeft: 10,
     },
-    // newMessageButton: {
-    //   position: 'absolute',
-    //   right: 20,
-    //   bottom: 20,
-    //   backgroundColor: colors.primary,
-    //   width: 60,
-    //   height: 60,
-    //   borderRadius: 30,
-    //   justifyContent: 'center',
-    //   alignItems: 'center',
-    //   elevation: 5,
-    // },
+    newMessageButton: {
+      position: 'absolute',
+      right: 20,
+      bottom: 20,
+      backgroundColor: colors.primary,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      justifyContent: 'center',
+      alignItems: 'center',
+      elevation: 5,
+    },
   });
 
   const renderContactItem = ({ item }) => (
@@ -335,7 +335,7 @@ const DirectMessageScreen = ({ navigation }) => {
           />
         </View>
 
-        {/* <TouchableOpacity 
+        <TouchableOpacity 
           style={styles.newMessageButton}
           onPress={() => {
             console.log('New message button pressed');
@@ -343,7 +343,7 @@ const DirectMessageScreen = ({ navigation }) => {
           }}
         >
           <Icon name="create" size={24} color="#fff" />
-        </TouchableOpacity> */}
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
