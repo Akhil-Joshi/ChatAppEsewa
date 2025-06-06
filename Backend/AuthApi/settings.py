@@ -13,7 +13,9 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'chatappesewa-oq31.onrender.com',
+    ]
 
 # Application definition
 
@@ -197,6 +199,11 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 # CORS Configuration (Optional - for frontend integration)
 
 # CORS_ALLOW_ALL_ORIGINS = True
+
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://chatappesewa-oq31.onrender.com"
+]
 
 CORS_ALLOWED_ORIGINS = [
     "https://chatappesewa-oq31.onrender.com"
