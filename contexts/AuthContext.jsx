@@ -13,7 +13,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem('@access_token');
+    await AsyncStorage.multiRemove([
+      '@user_id',
+      '@email',
+      '@full_name',
+      // '@last_name',
+      '@phone',
+      '@bio',
+      '@access_token',
+      '@refresh_token'
+    ]); 
     setIsLoggedIn(false);
   };
 

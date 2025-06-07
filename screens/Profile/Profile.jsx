@@ -142,16 +142,6 @@ const ProfileScreen = ({ navigation }) => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await AsyncStorage.multiRemove([
-                                '@user_id',
-                                '@email',
-                                '@full_name',
-                                // '@last_name',
-                                '@phone',
-                                '@bio',
-                                '@access_token',
-                                '@refresh_token'
-                            ]);
                             await logout();
                         } catch (error) {
                             console.error('Logout error:', error);

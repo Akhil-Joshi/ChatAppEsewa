@@ -55,6 +55,15 @@ export const sendResetPasswordOTP = async (userData) => {
 }
 
 
+// verifyResetPasswordOTP
+export const verifyResetPasswordOTP = async (userData) => {
+  try {
+    const response = await axios.post(`${BASE_URL}auth/password-reset/confirm/`, userData)
+    return response.data
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
 // resetPassword
 export const resetPassword = async (userData) => {
   try {

@@ -49,16 +49,6 @@ const HomeScreen = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Clear all stored user data from AsyncStorage
-              await AsyncStorage.multiRemove([
-                '@user_id',
-                '@email',
-                '@full_name',
-                '@access_token',
-                '@refresh_token'
-              ]);
-
-              // Update auth context - this will set isLoggedIn to false
               await logout();
 
             } catch (error) {

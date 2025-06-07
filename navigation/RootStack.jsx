@@ -27,7 +27,7 @@ const TabNavigator = () => {
           
           if (route.name === 'Chats') {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-          } else if (route.name === 'DirectMessage') {
+          } else if (route.name === 'DirectMessageScreen') {
             iconName = focused ? 'person' : 'person-outline';
           } else if (route.name === 'Groups') {
             iconName = focused ? 'people' : 'people-outline';
@@ -53,7 +53,7 @@ const TabNavigator = () => {
       })}
     >
       <Tab.Screen name="Chats" component={ChatStack} />
-      <Tab.Screen name="DirectMessage" component={DMStack} />
+      <Tab.Screen name="DirectMessageScreen" component={DMStack} options={{title:'Direct Message'}} />
       <Tab.Screen name="Groups" component={GroupStack} />
     </Tab.Navigator>
   );

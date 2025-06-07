@@ -16,7 +16,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// import { sendForgotPasswordOTP } from '../../helpers/postAPIs';
+import { sendResetPasswordOTP } from '../../helpers/postAPIs';
 
 const { width, height } = Dimensions.get('window');
 
@@ -95,7 +95,10 @@ export default function ForgotPassword({ navigation }) {
       };
       
       // Uncomment when API is ready
-      await sendForgotPasswordOTP(payload);
+      await sendResetPasswordOTP(payload);
+
+      setIsLoading(false)
+      navigation.navigate('ResetPasswordOTP', {email: payload?.email});
       
     } catch (error) {
       console.error("Send OTP error:", error);
