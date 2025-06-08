@@ -17,6 +17,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'chatappesewa-oq31.onrender.com',
+    'chatappesewa-latest.onrender.com',
     ]
 
 # Application definition
