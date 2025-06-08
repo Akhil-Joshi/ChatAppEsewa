@@ -11,7 +11,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = False
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -210,7 +210,9 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://chatappesewa-oq31.onrender.com"
+    "https://chatappesewa-oq31.onrender.com",
+    "https://chatappesewa-latest.onrender.com",
+
 ]
 
 CORS_ALLOWED_ORIGINS = [
