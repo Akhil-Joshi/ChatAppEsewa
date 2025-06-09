@@ -1,0 +1,50 @@
+PS C:\Users\Lenovo Loq\Desktop\ChatAppEsewa\Backend> docker-compose build
+Compose can now delegate builds to bake for better performance.
+ To do so, set COMPOSE_BAKE=true.
+[+] Building 4.3s (15/15) FINISHED                                                                           docker:desktop-linux
+ => [server internal] load build definition from Dockerfile                                                                  0.0s
+ => => transferring dockerfile: 1.69kB                                                                                       0.0s 
+ => [server] resolve image config for docker-image://docker.io/docker/dockerfile:1                                           2.0s 
+ => [server auth] docker/dockerfile:pull token for registry-1.docker.io                                                      0.0s 
+ => CACHED [server] docker-image://docker.io/docker/dockerfile:1@sha256:9857836c9ee4268391bb5b09f9f157f3c91bb15821bb7796964  0.0s
+ => => resolve docker.io/docker/dockerfile:1@sha256:9857836c9ee4268391bb5b09f9f157f3c91bb15821bb77969642813b0d00518d         0.0s 
+ => [server internal] load metadata for docker.io/library/python:3.12.10-slim                                                1.6s
+ => [server auth] library/python:pull token for registry-1.docker.io                                                         0.0s 
+ => [server internal] load .dockerignore                                                                                     0.0s
+ => => transferring context: 671B                                                                                            0.0s 
+ => [server base 1/5] FROM docker.io/library/python:3.12.10-slim@sha256:fd95fa221297a88e1cf49c55ec1828edd7c5a428187e67b5d18  0.0s 
+ => => resolve docker.io/library/python:3.12.10-slim@sha256:fd95fa221297a88e1cf49c55ec1828edd7c5a428187e67b5d1805692d11588d  0.0s
+ => [server internal] load build context                                                                                     0.0s 
+ => => transferring context: 9.70kB                                                                                          0.0s 
+ => CACHED [server base 2/5] WORKDIR /app                                                                                    0.0s 
+ => CACHED [server base 3/5] RUN adduser     --disabled-password     --gecos ""     --home "/nonexistent"     --shell "/sbi  0.0s 
+ => CACHED [server base 4/5] RUN --mount=type=cache,target=/root/.cache/pip     --mount=type=bind,source=requirements.txt,t  0.0s 
+ => CACHED [server base 5/5] COPY . .                                                                                        0.0s 
+ => [server] exporting to image                                                                                              0.1s 
+ => => exporting layers                                                                                                      0.0s 
+ => => exporting manifest sha256:7c4f8b7edc6a6b1c3b41b21bacfbef0eb1cda11caafb7987730ca3e4a31acf76                            0.0s 
+ => => exporting config sha256:5c8781b9449d08b8ece42cc95df913b1439721d2302d1b4cfda388928f1d7595                              0.0s 
+ => => exporting attestation manifest sha256:006227baf7a4eebf76141bd32ae93161f86558ae84461d690b1427d3446ccf44                0.0s 
+ => => exporting manifest list sha256:94af148f185281d6d2ad466a440e1ef2d3539bd60c50a7bf418ab17161b69005                       0.0s 
+ => => naming to docker.io/akhil9842/chatappesewa:latest                                                                     0.0s 
+ => => unpacking to docker.io/akhil9842/chatappesewa:latest                                                                  0.0s 
+ => [server] resolving provenance for metadata file                                                                          0.0s 
+[+] Building 1/1
+ ✔ server  Built                                                                                                             0.0s 
+PS C:\Users\Lenovo Loq\Desktop\ChatAppEsewa\Backend> docker push akhil9842/chatappesewa:latest
+The push refers to repository [docker.io/akhil9842/chatappesewa]
+61320b01ae5e: Layer already exists
+45562596df51: Pushed
+e87cad6d5f9c: Layer already exists
+a55cc88890be: Layer already exists
+be1274d3cce0: Layer already exists
+b8ff781450b5: Pushed
+8991c9200d62: Layer already exists
+7a1cb8b88221: Layer already exists
+337397d02909: Layer already exists
+latest: digest: sha256:94af148f185281d6d2ad466a440e1ef2d3539bd60c50a7bf418ab17161b69005 size: 856
+PS C:\Users\Lenovo Loq\Desktop\ChatAppEsewa\Backend> 
+ *  History restored 
+
+PS C:\Users\Lenovo Loq\Desktop\ChatAppEsewa> .\venv\Scripts\activate
+(venv) PS C:\Users\Lenovo Loq\Desktop\ChatAppEsewa>
