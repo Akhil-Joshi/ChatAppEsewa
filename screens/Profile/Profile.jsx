@@ -498,7 +498,7 @@ const ProfileScreen = ({ navigation }) => {
                         icon="person-outline"
                         label="Full Name"
                         value={userData.fullName || 'Not set'}
-                        onPress={() => handleEditField('firstName', userData.firstName)}
+                        onPress={() => handleEditField('fullName', userData.fullName)}
                     />
                     {/* <ProfileItem
                         icon="person-outline"
