@@ -59,11 +59,11 @@ from .serializers import (
     UserRegistrationSerializer,
     EmailVerificationSerializer,
     LoginSerializer,
-    ResendOTPSerializer,
+    PasswordResetRequestSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
     UserProfileSerializer,
-    CustomTokenObtainPairSerializer
+    CustomTokenObtainPairSerializer,
 )
 from .models import User, OTP
 
@@ -214,7 +214,7 @@ class ResendOTPView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request, format=None):
-        serializer = ResendOTPSerializer(data=request.data)
+        serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data['user']
             purpose = serializer.validated_data['purpose']
@@ -404,61 +404,6 @@ class UserProfileView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-
-class LogoutView(APIView):
-    """
-    User Logout API
-    POST: Logout user and blacklist refresh token
-    """
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request, format=None):
-        try:
-            refresh_token = request.data.get('refresh_token')
-            if refresh_token:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
-            
-            return Response(
-                {
-                    'success': True,
-                    'message': 'Logged out successfully'
-                }, 
-                status=status.HTTP_200_OK
-            )
-        except Exception as e:
-            return Response(
-                {
-                    'success': False,
-                    'message': 'Logout failed',
-                    'error': str(e)
-                }, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-
-class CleanupExpiredOTPsView(APIView):
-    """
-    Cleanup Expired OTPs API (for admin use)
-    POST: Remove expired OTPs from database
-    """
-    
-    def post(self, request, format=None):
-        # Delete expired OTPs
-        expired_otps = OTP.objects.filter(expires_at__lt=timezone.now())
-        count = expired_otps.count()
-        expired_otps.delete()
-        
-        return Response(
-            {
-                'success': True,
-                'message': f'Cleaned up {count} expired OTPs',
-                'data': {
-                    'deleted_count': count
-                }
-            }, 
-            status=status.HTTP_200_OK
-        )
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer

@@ -47,6 +47,10 @@ class User(AbstractBaseUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # OTP verification state for password reset
+    otp_verified_for_reset = models.BooleanField(default=False)
+    otp_verified_at = models.DateTimeField(null=True, blank=True)
+
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
@@ -64,6 +68,12 @@ class User(AbstractBaseUser):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
+
+    def can_reset_password(self):
+        """Allow password reset only within 10 minutes after OTP verification."""
+        if self.otp_verified_for_reset and self.otp_verified_at:
+            return timezone.now() <= self.otp_verified_at + timedelta(minutes=10)
+        return False
 
     class Meta:
         verbose_name = 'User'

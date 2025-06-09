@@ -1,4 +1,4 @@
-# admin.py
+# core/admin.py
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
@@ -8,7 +8,6 @@ from django import forms
 from django.utils.html import format_html
 from django.utils import timezone
 from .models import User, OTP
-
 
 class UserCreationForm(forms.ModelForm):
     """A form for creating new users. Includes all the required
@@ -36,7 +35,6 @@ class UserCreationForm(forms.ModelForm):
             user.save()
         return user
 
-
 class UserChangeForm(forms.ModelForm):
     """A form for updating users. Includes all the fields on
     the user, but replaces the password field with admin's
@@ -49,14 +47,11 @@ class UserChangeForm(forms.ModelForm):
         fields = ('email', 'password', 'first_name', 'last_name', 
                  'is_active', 'is_admin', 'is_staff', 'email_verified')
 
-
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    # The forms to add and change user instances
     form = UserChangeForm
     add_form = UserCreationForm
 
-    # The fields to be used in displaying the User model.
     list_display = ('email', 'first_name', 'last_name', 'full_name_display', 
                    'is_active', 'is_staff', 'is_admin', 'email_verified_display', 
                    'created_at_display')
@@ -121,7 +116,6 @@ class UserAdmin(BaseUserAdmin):
         updated = queryset.update(email_verified=False)
         self.message_user(request, f'{updated} users email were marked as unverified.')
     unverify_email.short_description = "Mark selected users email as unverified"
-
 
 @admin.register(OTP)
 class OTPAdmin(admin.ModelAdmin):
@@ -195,8 +189,6 @@ class OTPAdmin(admin.ModelAdmin):
         self.message_user(request, f'{count} expired OTPs were deleted.')
     delete_expired_otps.short_description = "Delete expired OTPs"
 
-
-# Customize admin site header and title
 admin.site.site_header = "User Authentication Admin"
 admin.site.site_title = "Auth Admin Portal"
 admin.site.index_title = "Welcome to User Authentication Administration"
