@@ -30,22 +30,30 @@ RUN adduser \
     --uid "${UID}" \
     appuser
 
-# Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.cache/pip to speed up subsequent builds.
-# Leverage a bind mount to requirements.txt to avoid having to copy them into
-# into this layer.
+# Copy the source code into the container (before installing dependencies).
+COPY . .
+
+# Install system dependencies (e.g., for psycopg2 if using PostgreSQL).
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies from Backend/requirements.txt.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    --mount=type=bind,source=requirements.txt,target=requirements.txt \
-    python -m pip install -r requirements.txt
+    python -m pip install -r Backend/requirements.txt
+
+# Collect static files (assuming Django project is in Backend directory).
+RUN cd Backend && python manage.py collectstatic --noinput
+
+# Run migrations (assuming Django project is in Backend directory).
+RUN cd Backend && python manage.py migrate
 
 # Switch to the non-privileged user to run the application.
 USER appuser
 
-# Copy the source code into the container.
-COPY . .
-
 # Expose the port that the application listens on.
 EXPOSE 8000
 
-# Run the application.
-CMD gunicorn 'AuthApi.wsgi' --bind=0.0.0.0:8000
+# Run the application (adjusted for Backend directory).
+CMD ["gunicorn", "--chdir", "Backend", "AuthApi.wsgi:application", "--bind", "0.0.0.0:8000"]
