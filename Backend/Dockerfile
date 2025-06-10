@@ -1,25 +1,19 @@
 # syntax=docker/dockerfile:1
 
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Dockerfile reference guide at
-# https://docs.docker.com/go/dockerfile-reference/
-
-# Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
-
+# Set the Python version to use
 ARG PYTHON_VERSION=3.12.10
 FROM python:${PYTHON_VERSION}-slim as base
 
-# Prevents Python from writing pyc files.
+# Prevent Python from writing .pyc files
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Keeps Python from buffering stdout and stderr to avoid situations where
-# the application crashes without emitting any logs due to buffering.
+# Prevent Python from buffering stdout/stderr
 ENV PYTHONUNBUFFERED=1
 
+# Set working directory inside the container
 WORKDIR /app
 
-# Create a non-privileged user that the app will run under.
-# See https://docs.docker.com/go/dockerfile-user-best-practices/
+# Create a non-privileged user to run the app securely
 ARG UID=10001
 RUN adduser \
     --disabled-password \
@@ -30,30 +24,32 @@ RUN adduser \
     --uid "${UID}" \
     appuser
 
-# Copy the source code into the container (before installing dependencies).
+# Copy all files into the container
 COPY . .
 
-# Install system dependencies (e.g., for psycopg2 if using PostgreSQL).
+# Install system dependencies (for psycopg2 and compiling packages)
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
+    && python -m ensurepip --upgrade \
+    && python -m pip install --upgrade pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies from Backend/requirements.txt.
+# Install Python dependencies from the Backend directory
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install -r Backend/requirements.txt
 
-# Collect static files (assuming Django project is in Backend directory).
+# Collect static files
 RUN cd Backend && python manage.py collectstatic --noinput
 
-# Run migrations (assuming Django project is in Backend directory).
+# Apply database migrations
 RUN cd Backend && python manage.py migrate
 
-# Switch to the non-privileged user to run the application.
+# Switch to the non-root user
 USER appuser
 
-# Expose the port that the application listens on.
+# Expose the port the app will run on
 EXPOSE 8000
 
-# Run the application (adjusted for Backend directory).
+# Start the application using Gunicorn
 CMD ["gunicorn", "--chdir", "Backend", "AuthApi.wsgi:application", "--bind", "0.0.0.0:8000"]
