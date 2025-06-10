@@ -26,8 +26,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'rest_framework_simplejwt.token_blacklist',
-    'channels',  # Added for WebSocket support
-    'chat',     # New app for chat functionality
+    'channels',
+    'chat',
 ]
 
 MIDDLEWARE = [
@@ -61,15 +61,13 @@ TEMPLATES = [
     },
 ]
 
-# ASGI Configuration for Channels
 ASGI_APPLICATION = 'AuthApi.asgi.application'
 
-# Channel Layers
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer', 
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [("127.0.0.1", 6379)],  # Configure Redis for production
+            "hosts": [("127.0.0.1", 6379)],
         },
     },
 }
@@ -78,8 +76,12 @@ WSGI_APPLICATION = 'AuthApi.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('DB_NAME', default='chatapp'),
+        'USER': config('DB_USER', default='postgres'),
+        'PASSWORD': config('DB_PASSWORD', default='your_password'),
+        'HOST': config('DB_HOST', default='localhost'),
+        'PORT': config('DB_PORT', default='5432'),
     }
 }
 
