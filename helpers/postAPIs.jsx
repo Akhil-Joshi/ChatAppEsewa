@@ -47,7 +47,7 @@ export const login = async (userData) => {
 // sendResetPasswordOTP
 export const sendResetPasswordOTP = async (userData) => {
   try {
-    const response = await axios.post(`${BASE_URL}auth/password-reset/`, userData)
+    const response = await axios.post(`${BASE_URL}auth/password-reset/request/`, userData)
     return response.data
   } catch (error) {
     throw error.response ? error.response.data : error;
@@ -58,16 +58,17 @@ export const sendResetPasswordOTP = async (userData) => {
 // verifyResetPasswordOTP
 export const verifyResetPasswordOTP = async (userData) => {
   try {
-    const response = await axios.post(`${BASE_URL}auth/password-reset/confirm/`, userData)
+    const response = await axios.post(`${BASE_URL}auth/password-reset/verify-otp/`, userData)
     return response.data
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
 }
+
 // resetPassword
 export const resetPassword = async (userData) => {
   try {
-    const response = await axios.post(`${BASE_URL}auth/password-reset/confirm/`, userData)
+    const response = await axios.post(`${BASE_URL}auth/password-reset/set-password/`, userData)
     return response.data
   } catch (error) {
     throw error.response ? error.response.data : error;

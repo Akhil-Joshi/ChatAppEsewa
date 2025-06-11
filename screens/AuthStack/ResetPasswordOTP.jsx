@@ -154,9 +154,22 @@ export default function ResetPasswordOTP({ navigation, route }) {
       };
 
       // Uncomment when API is ready
-      await verifyResetPasswordOTP(payload);
-
-
+      const response = await verifyResetPasswordOTP(payload);
+      console.log(response, 'response here')
+      if (response?.success) {
+        setIsOtpVerified(true)
+        // Animate password form in
+        Animated.timing(passwordFormAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+        setIsVerifying(false);
+      } else {
+        setIsVerifying(false);
+        shakeAnimation();
+        Alert.alert('Error', response?.message || 'Invalid verification code. Please try again.');
+      }
     } catch (error) {
       console.error("Verify OTP error:", error);
       Alert.alert('Error', 'Invalid verification code. Please try again.');
@@ -246,13 +259,15 @@ export default function ResetPasswordOTP({ navigation, route }) {
     try {
       const payload = {
         email: email,
-        otp_code: otp.join(''),
         new_password: formData.newPassword,
-        confirm_newPassword: formData.confirmPassword,
+        confirm_new_password: formData.confirmPassword,
       };
 
       // Uncomment when API is ready
-      await resetPassword(payload);
+      const response = await resetPassword(payload);
+      if(response.success){
+        navigation.navigate('Login',{email: payload?.email})
+      }
 
 
     } catch (error) {
@@ -608,41 +623,6 @@ export default function ResetPasswordOTP({ navigation, route }) {
                         </LinearGradient>
                       </TouchableOpacity>
                     </Animated.View>
-
-                    {/* Password Requirements */}
-                    {/* <View style={styles.requirementsContainer}>
-                      <Text style={styles.requirementsTitle}>Password Requirements:</Text>
-                      <View style={styles.requirementItem}>
-                        <Ionicons 
-                          name={formData.newPassword.length >= 6 ? "checkmark-circle" : "ellipse-outline"} 
-                          size={16} 
-                          color={formData.newPassword.length >= 6 ? "#2ed573" : "#ccc"} 
-                        />
-                        <Text style={[styles.requirementText, formData.newPassword.length >= 6 && styles.requirementMet]}>
-                          At least 6 characters
-                        </Text>
-                      </View>
-                      <View style={styles.requirementItem}>
-                        <Ionicons 
-                          name={/[A-Z]/.test(formData.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                          size={16} 
-                          color={/[A-Z]/.test(formData.newPassword) ? "#2ed573" : "#ccc"} 
-                        />
-                        <Text style={[styles.requirementText, /[A-Z]/.test(formData.newPassword) && styles.requirementMet]}>
-                          One uppercase letter (recommended)
-                        </Text>
-                      </View>
-                      <View style={styles.requirementItem}>
-                        <Ionicons 
-                          name={/[0-9]/.test(formData.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                          size={16} 
-                          color={/[0-9]/.test(formData.newPassword) ? "#2ed573" : "#ccc"} 
-                        />
-                        <Text style={[styles.requirementText, /[0-9]/.test(formData.newPassword) && styles.requirementMet]}>
-                          One number (recommended)
-                        </Text>
-                      </View>
-                    </View> */}
                   </Animated.View>
                 )}
               </View>
