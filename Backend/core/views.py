@@ -50,18 +50,17 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import  AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import login
-from django.utils import timezone
 from .serializers import (
     UserRegistrationSerializer,
     EmailVerificationSerializer,
     LoginSerializer,
     PasswordResetRequestSerializer,
-    PasswordResetRequestSerializer,
-    PasswordResetConfirmSerializer,
+    PasswordResetOTPVerifySerializer,
+    PasswordResetSetNewPasswordSerializer,
     UserProfileSerializer,
     CustomTokenObtainPairSerializer,
 )
@@ -266,7 +265,6 @@ class ResendOTPView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-
 class PasswordResetRequestView(APIView):
     """
     Password Reset Request API
@@ -317,50 +315,61 @@ class PasswordResetRequestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+class PasswordResetOTPVerifyView(APIView):
+    """
+    POST: Verify OTP sent to email for password reset.
+    """
+    permission_classes = [AllowAny]
 
-class PasswordResetConfirmView(APIView):
-    """
-    Password Reset Confirmation API
-    POST: Verify OTP and set new password
-    """
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request, format=None):
-        serializer = PasswordResetConfirmSerializer(data=request.data)
+    def post(self, request):
+        serializer = PasswordResetOTPVerifySerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.validated_data['user']
-            otp = serializer.validated_data['otp']
-            new_password = serializer.validated_data['new_password']
-            
-            # Set new password
-            user.set_password(new_password)
-            user.save()
-            
-            # Mark OTP as used
-            otp.mark_as_used()
-            
-            # Invalidate all other OTPs for this user
-            OTP.objects.filter(user=user, is_used=False).update(is_used=True)
-            
             return Response(
                 {
-                    'success': True,
-                    'message': 'Password reset successful. You can now login with your new password.',
-                    'data': {
-                        'email': user.email
-                    }
-                }, 
+                    "success": True,
+                    "message": "OTP verified. You may now reset your password.",
+                    "data": serializer.validated_data
+                },
                 status=status.HTTP_200_OK
             )
-        else:
+        return Response(
+            {
+                "success": False,
+                "message": "OTP verification failed.",
+                "errors": serializer.errors
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class PasswordResetSetNewPasswordView(APIView):
+    """
+    POST: Set a new password after successful OTP verification.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetSetNewPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
             return Response(
                 {
-                    'success': False,
-                    'message': 'Password reset failed',
-                    'errors': serializer.errors
-                }, 
-                status=status.HTTP_400_BAD_REQUEST
+                    "success": True,
+                    "message": "Password reset successful. You can now log in.",
+                    "data": {
+                        "email": serializer.validated_data['email']
+                    }
+                },
+                status=status.HTTP_200_OK
             )
+        return Response(
+            {
+                "success": False,
+                "message": "Failed to reset password.",
+                "errors": serializer.errors
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class UserProfileView(APIView):

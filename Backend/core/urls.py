@@ -8,7 +8,8 @@ from .views import (
     LoginView,
     ResendOTPView,
     PasswordResetRequestView,
-    PasswordResetConfirmView,
+    PasswordResetOTPVerifyView,
+    PasswordResetSetNewPasswordView, 
     UserProfileView,
     CustomTokenObtainPairView
 )
@@ -26,8 +27,9 @@ urlpatterns = [
     path('resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
     
     # Password Reset URLs
-    path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
-    path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    path('password-reset/request/', PasswordResetRequestView.as_view(), name='password_reset_request'),
+    path('password-reset/verify-otp/', PasswordResetOTPVerifyView.as_view(), name='password_reset_verify_otp'),
+    path('password-reset/set-password/', PasswordResetSetNewPasswordView.as_view(), name='password_reset_set_new_password'),
     
     # User Profile URLs
     path('profile/', UserProfileView.as_view(), name='user-profile'),
