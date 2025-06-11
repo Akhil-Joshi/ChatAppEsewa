@@ -35,20 +35,20 @@ COPY . .
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
-    && python -m ensurepip --upgrade \
-    && python -m pip install --upgrade pip \
+    && python3 -m ensurepip --upgrade \
+    && python3 -m pip install --upgrade pip \
     && rm -rf /var/lib/apt/lists/*
 
 # ✅ Use python3 here instead of python
-RUN cd Backend && python -m pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+RUN cd Backend && python3 -m pip install -r requirements.txt && python3 manage.py collectstatic --noinput && python3 manage.py migrate
 
 USER appuser
 
 # Copy the source code into the container.
-COPY . .
+# COPY . .
 
 # Expose the port that the application listens on.
 EXPOSE 8000
 
 # Run the application.
-CMD gunicorn 'AuthApi.wsgi' --bind=0.0.0.0:8000
+CMD gunicorn 'AuthApi.wsgi' --bind=0.0.0.0:${PORT}
