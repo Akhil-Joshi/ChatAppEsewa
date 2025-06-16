@@ -160,6 +160,10 @@ class SendFriendRequestView(APIView):
         if to_user == request.user:
             return Response({'error': 'You cannot send a friend request to yourself.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Check if they're already friends
+        if Friendship.objects.filter(user=request.user, friend=to_user).exists():
+            return Response({'error': 'You are already friends with this user.'}, status=status.HTTP_400_BAD_REQUEST)
+
         if FriendRequest.objects.filter(from_user=request.user, to_user=to_user, status='pending').exists():
             return Response({'error': 'Friend request already sent and pending.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -171,8 +175,9 @@ class SendFriendRequestView(APIView):
         )
 
         return Response({
+            'success': True,
             'message': 'Friend request sent successfully.',
-            'friend_request': FriendRequestSerializer(friend_request).data
+            'data': FriendRequestSerializer(friend_request).data
         }, status=status.HTTP_201_CREATED)
 
 
@@ -186,40 +191,119 @@ class FriendRequestHistoryView(generics.ListAPIView):
             Q(from_user=self.request.user) | Q(to_user=self.request.user)
         ).select_related('from_user', 'to_user')
 
+
 class RespondToFriendRequestView(APIView):
+    """Accept or reject a friend request and create friendship if accepted"""
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         friend_code = request.data.get('friend_code')
         action = request.data.get('action')  # 'accept' or 'reject'
 
-        if not friend_code:
-            return Response({'error': 'Missing friend_code'}, status=400)
+        if not friend_code or not action:
+            return Response({
+                'success': False,
+                'error': 'Both friend_code and action are required.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         if action not in ['accept', 'reject']:
-            return Response({'error': 'Invalid action. Must be accept or reject.'}, status=400)
+            return Response({
+                'success': False,
+                'error': 'Invalid action. Must be "accept" or "reject".'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            # Find the friend request
             friend_request = FriendRequest.objects.get(
                 from_user__friend_code=friend_code,
-                to_user=request.user
+                to_user=request.user,
+                status='pending'
             )
         except FriendRequest.DoesNotExist:
-            return Response({'error': 'Friend request not found.'}, status=404)
+            return Response({
+                'success': False,
+                'error': 'Friend request not found or already processed.'
+            }, status=status.HTTP_404_NOT_FOUND)
 
+        # Update friend request status
         friend_request.status = 'accepted' if action == 'accept' else 'rejected'
         friend_request.save()
 
-        return Response({'message': f'Friend request {action}ed successfully.'})
-    
-class FriendListView(generics.ListAPIView):
-    """List all friends of the authenticated user"""
-    serializer_class = FriendshipSerializer
-    permission_classes = [IsAuthenticated]
+        if action == 'accept':
+            # Create bidirectional friendship
+            from_user = friend_request.from_user
+            to_user = friend_request.to_user
 
+            # Create friendship from requester to receiver
+            friendship1, created1 = Friendship.objects.get_or_create(
+                user=from_user,
+                friend=to_user
+            )
+
+            # Create friendship from receiver to requester
+            friendship2, created2 = Friendship.objects.get_or_create(
+                user=to_user,
+                friend=from_user
+            )
+
+            return Response({
+                'success': True,
+                'message': f'Friend request accepted! You are now friends with {from_user.full_name or from_user.email}.',
+                'data': {
+                    'friend_request': FriendRequestSerializer(friend_request).data,
+                    'new_friend': UserProfileSerializer(from_user).data,
+                    'friendship_created': created1 and created2
+                }
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'success': True,
+                'message': 'Friend request rejected.',
+                'data': {
+                    'friend_request': FriendRequestSerializer(friend_request).data
+                }
+            }, status=status.HTTP_200_OK)
+
+
+class FriendListView(APIView):
+
+    """List all friends of the authenticated user with their details"""
+    permission_classes = [IsAuthenticated]
     def get_queryset(self):
-        # Get all friends for the authenticated user
-        friendships = Friendship.objects.filter(user=self.request.user)
-        friend_ids = friendships.values_list('friend_id', flat=True)
-        return User.objects.filter(id__in=friend_ids)
+        return FriendRequest.objects.filter(to_user=self.request.user).order_by('-created_at')
+    
+    def get(self, request):
+        user = request.user
+
+        # Get users who are in accepted friend requests
+        accepted_requests = FriendRequest.objects.filter(
+            Q(from_user=user) | Q(to_user=user),
+            status='accepted'
+        ).select_related('from_user', 'to_user')
+
+        friend_users = set()
+        for fr in accepted_requests:
+            if fr.from_user == user:
+                friend_users.add(fr.to_user)
+            else:
+                friend_users.add(fr.from_user)
+
+        friends_data = []
+        for friend in friend_users:
+            friends_data.append({
+                'id': friend.id,
+                'email': friend.email,
+                'full_name': friend.full_name,
+                'friend_code': friend.friend_code,
+                'profile_photo': friend.profile_photo.url if friend.profile_photo else None,
+            })
+
+        return Response({
+            'success': True,
+            'message': f'Found {len(friends_data)} friends.',
+            'data': friends_data
+        }, status=status.HTTP_200_OK)
+
 
 class MutualFriendsView(generics.ListAPIView):
     """List mutual friends between authenticated user and another user"""
@@ -244,16 +328,27 @@ class MutualFriendsView(generics.ListAPIView):
         
         return User.objects.filter(id__in=mutual_friend_ids)
 
+
 class RemoveFriendView(APIView):
-    """Remove a friend (delete bidirectional friendship)"""
+    """Remove a friend using their friend_code"""
     permission_classes = [IsAuthenticated]
 
-    def delete(self, request, friend_id):
+    def post(self, request):
+        friend_code = request.data.get('friend_code')
+        
+        if not friend_code:
+            return Response({
+                'success': False,
+                'error': 'friend_code is required.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            friend = User.objects.get(id=friend_id)
+            friend = User.objects.get(friend_code=friend_code)
         except User.DoesNotExist:
-            return Response({'error': 'User not found.'}, 
-                          status=status.HTTP_404_NOT_FOUND)
+            return Response({
+                'success': False,
+                'error': 'User with provided friend_code not found.'
+            }, status=status.HTTP_404_NOT_FOUND)
 
         # Check if friendship exists
         friendship_exists = Friendship.objects.filter(
@@ -262,16 +357,26 @@ class RemoveFriendView(APIView):
         ).exists()
 
         if not friendship_exists:
-            return Response({'error': 'You are not friends with this user.'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'success': False,
+                'error': 'You are not friends with this user.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # Remove bidirectional friendship
-        Friendship.objects.filter(
+        deleted_count = Friendship.objects.filter(
             Q(user=request.user, friend=friend) |
             Q(user=friend, friend=request.user)
-        ).delete()
+        ).delete()[0]
 
-        return Response({'message': f'Successfully removed {friend.username} from friends.'})
+        return Response({
+            'success': True,
+            'message': f'Successfully removed {friend.full_name or friend.email} from friends.',
+            'data': {
+                'removed_friend': UserProfileSerializer(friend).data,
+                'friendships_deleted': deleted_count
+            }
+        }, status=status.HTTP_200_OK)
+
 
 class FriendshipStatsView(APIView):
     """Get friendship statistics for the authenticated user"""
@@ -281,7 +386,7 @@ class FriendshipStatsView(APIView):
         user = request.user
         
         stats = {
-            'total_friends': Friendship.objects.filter(user=user).count(),
+            'total_friends': user.get_total_friends(),
             'pending_requests_received': FriendRequest.objects.filter(
                 to_user=user, 
                 status='pending'
@@ -306,20 +411,7 @@ class FriendshipStatsView(APIView):
             ).count(),
         }
         
-        return Response(stats)
-
-class RemoveFriendView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        friend_code = request.data.get('friend_code')
-        try:
-            friend = User.objects.get(friend_code=friend_code)
-        except User.DoesNotExist:
-            return Response({'error': 'Friend not found'}, status=404)
-
-        # Delete both directions
-        Friendship.objects.filter(user=request.user, friend=friend).delete()
-        Friendship.objects.filter(user=friend, friend=request.user).delete()
-
-        return Response({'message': 'Friend removed successfully'}, status=200)
+        return Response({
+            'success': True,
+            'data': stats
+        }, status=status.HTTP_200_OK)

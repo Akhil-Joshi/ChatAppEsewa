@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
 
+
 def generate_friend_code():
     return "{:06d}".format(random.randint(0, 999999))
 
@@ -76,6 +77,15 @@ class User(AbstractBaseUser):
 
     def has_module_perms(self, app_label):
         return True
+    
+    def get_total_friends(self):
+        from chat.models import FriendRequest
+        from django.db.models import Q
+        return FriendRequest.objects.filter(
+            Q(from_user=self) | Q(to_user=self),
+            status='accepted'
+        ).count()
+
 
     @property
     def full_name(self):
