@@ -19,4 +19,5 @@ urlpatterns = [
     path('profile/update/', ProfileUpdateView.as_view(), name='profile-update'),
     path('toggle-emotion/<int:message_id>/', ToggleEmotionView.as_view(), name='toggle-emotion'),
     path('friends/remove/', RemoveFriendView.as_view(), name='remove-friend'),
+
 ]

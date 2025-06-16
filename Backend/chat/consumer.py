@@ -15,8 +15,8 @@ except Exception as e:
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'chat_{self.room_name}'
+        self.username = self.scope['url_route']['kwargs']['username']
+        self.room_group_name = f'chat_{self.username}'
         self.user = self.scope.get('user')
 
         if not self.user or not self.user.is_authenticated:
@@ -39,17 +39,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         try:
             data = json.loads(text_data)
-            content = data.get('content', '')
-            recipient_id = data.get('recipient_id')
+            content = data.get('content', '').strip()
+            recipient_username = data.get('to')  # updated to use username
             group_id = data.get('group_id')
 
-            if not content.strip():
+            if not content:
                 await self.send(text_data=json.dumps({
                     'error': 'Message content cannot be empty'
                 }))
                 return
 
-            # Perform emotion detection
+            # Emotion detection
             emotion = 'neutral'
             if sid:
                 try:
@@ -58,11 +58,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 except Exception as e:
                     print(f"Sentiment analysis failed: {e}")
 
-            message = await self.create_message(content, recipient_id, group_id, emotion)
+            message = await self.create_message(content, recipient_username, group_id, emotion)
             serializer = MessageSerializer(message)
 
+            # Send message to recipient's channel
+            recipient_group = f'chat_{recipient_username}' if recipient_username else self.room_group_name
             await self.channel_layer.group_send(
-                self.room_group_name,
+                recipient_group,
                 {
                     'type': 'chat_message',
                     'message': serializer.data
@@ -83,16 +85,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     @database_sync_to_async
-    def create_message(self, content, recipient_id, group_id, emotion):
+    def create_message(self, content, recipient_username, group_id, emotion):
         try:
             message = Message.objects.create(
                 sender=self.user,
                 content=content,
                 emotion=emotion
             )
-            if recipient_id:
+            if recipient_username:
                 try:
-                    message.recipient = User.objects.get(id=recipient_id)
+                    message.recipient = User.objects.get(username=recipient_username)
                 except User.DoesNotExist:
                     pass
             if group_id:

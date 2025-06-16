@@ -11,13 +11,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class FriendRequestSerializer(serializers.ModelSerializer):
-    from_user = UserSerializer(read_only=True)
-    to_user = UserSerializer(read_only=True)
+    from_user = UserProfileSerializer(read_only=True)
+    to_user = UserProfileSerializer(read_only=True)
 
     class Meta:
         model = FriendRequest
-        fields = ['id', 'from_user', 'to_user', 'accepted', 'created_at']
-        read_only_fields = ['from_user', 'to_user', 'created_at']
+        fields = ['id', 'from_user', 'to_user', 'status', 'created_at']
 
 class FriendshipSerializer(serializers.ModelSerializer):
     friend = UserProfileSerializer(read_only=True)
