@@ -183,7 +183,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'full_name', 'is_active', 'email_verified', 'created_at', 'profile_photo']
+        fields = ['id', 'email', 'first_name', 'last_name', 'full_name', 'is_active', 'email_verified', 'created_at', 'profile_photo','friend_code']
         read_only_fields = ['id', 'email', 'is_active', 'email_verified', 'created_at']
 
     def get_full_name(self, obj):
