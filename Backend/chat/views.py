@@ -187,56 +187,29 @@ class FriendRequestHistoryView(generics.ListAPIView):
         ).select_related('from_user', 'to_user')
 
 class RespondToFriendRequestView(APIView):
-    """Respond to a friend request using the request ID instead of friend code"""
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, request_id):
+    def post(self, request):
+        friend_code = request.data.get('friend_code')
         action = request.data.get('action')  # 'accept' or 'reject'
 
+        if not friend_code:
+            return Response({'error': 'Missing friend_code'}, status=400)
+
         if action not in ['accept', 'reject']:
-            return Response({'error': 'Invalid action. Use "accept" or "reject".'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Invalid action. Must be accept or reject.'}, status=400)
 
         try:
             friend_request = FriendRequest.objects.get(
-                id=request_id,
+                from_user__friend_code=friend_code,
                 to_user=request.user
             )
         except FriendRequest.DoesNotExist:
-            return Response({'error': 'Friend request not found.'}, 
-                          status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Friend request not found.'}, status=404)
 
-        if friend_request.status != 'pending':
-            return Response({'error': 'Friend request already handled.'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
+        friend_request.status = 'accepted' if action == 'accept' else 'rejected'
+        friend_request.save()
 
-        if action == 'accept':
-            friend_request.status = 'accepted'
-            friend_request.save()
-
-            # Create bidirectional friendship
-            Friendship.objects.get_or_create(
-                user=request.user, 
-                friend=friend_request.from_user
-            )
-            Friendship.objects.get_or_create(
-                user=friend_request.from_user, 
-                friend=request.user
-            )
-
-            return Response({
-                'message': 'Friend request accepted and friendship created.',
-                'friend_request': FriendRequestSerializer(friend_request).data
-            })
-
-        else:  # reject
-            friend_request.status = 'rejected'
-            friend_request.save()
-            return Response({
-                'message': 'Friend request rejected.',
-                'friend_request': FriendRequestSerializer(friend_request).data
-            })
-
+        return Response({'message': f'Friend request {action}ed successfully.'})
+    
 class FriendListView(generics.ListAPIView):
     """List all friends of the authenticated user"""
     serializer_class = FriendshipSerializer
