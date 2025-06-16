@@ -50,7 +50,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import  AllowAny
+from rest_framework.permissions import    AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import login
@@ -64,6 +64,7 @@ from .serializers import (
     UserProfileSerializer,
     CustomTokenObtainPairSerializer,
 )
+from django.db import models
 from .models import User, OTP
 
 
@@ -213,20 +214,28 @@ class ResendOTPView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request, format=None):
-        serializer = PasswordResetRequestSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-            purpose = serializer.validated_data['purpose']
+        email = request.data.get('email')
+        purpose = request.data.get('purpose', 'registration')
+        
+        if not email:
+            return Response({
+                'success': False,
+                'message': 'Email is required.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email.lower())
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'User with this email does not exist.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Only allow 'registration' or 'password_reset' as valid purposes
-            if purpose not in ['registration', 'password_reset']:
-                return Response(
-                    {
-                        'success': False,
-                        'message': 'Invalid purpose. Only registration and password reset are allowed.',
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+        if purpose not in ['registration', 'password_reset']:
+            return Response({
+                'success': False,
+                'message': 'Invalid purpose.'
+            }, status=status.HTTP_400_BAD_REQUEST)
             
             # Invalidate previous OTPs of same purpose
             OTP.objects.filter(user=user, purpose=purpose, is_used=False).update(is_used=True)

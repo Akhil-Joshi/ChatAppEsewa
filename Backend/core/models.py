@@ -6,6 +6,8 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
 
+def generate_friend_code():
+    return "{:06d}".format(random.randint(0, 999999))
 
 class UserManager(BaseUserManager):
     def create_user(self, email, first_name, last_name, password=None, **extra_fields):
@@ -46,6 +48,8 @@ class User(AbstractBaseUser):
     email_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    friend_code = models.CharField(max_length=6, unique=True, editable=False, default=generate_friend_code)
+    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
 
     # OTP verification state for password reset
     otp_verified_for_reset = models.BooleanField(default=False)
@@ -55,6 +59,14 @@ class User(AbstractBaseUser):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
+    
+    def save(self, *args, **kwargs):
+        if not self.friend_code:
+            code = generate_friend_code()
+            while User.objects.filter(friend_code=code).exists():
+                code = generate_friend_code()
+            self.friend_code = code
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.email
@@ -78,6 +90,7 @@ class User(AbstractBaseUser):
     class Meta:
         verbose_name = 'User'
         verbose_name_plural = 'Users'
+
 
 
 class OTP(models.Model):

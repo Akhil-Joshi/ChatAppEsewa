@@ -1,10 +1,14 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
-from .models import Friendship, ChatGroup, Message
-from .serializers import FriendshipSerializer, ChatGroupSerializer, MessageSerializer
+from django.db import models
+from core.serializers import UserProfileSerializer
+from .models import Friendship, ChatGroup, Message, FriendRequest
+from .serializers import FriendshipSerializer, ChatGroupSerializer, MessageSerializer, FriendRequestSerializer
 from core.models import User
+from core.serializers import UserProfileSerializer
+from django.db.models import Q
 import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 nltk.download('vader_lexicon')
@@ -14,73 +18,44 @@ class FriendListView(APIView):
 
     def get(self, request):
         friendships = Friendship.objects.filter(
-            user=request.user, status='accepted'
-        ) | Friendship.objects.filter(friend=request.user, status='accepted')
-        serializer = FriendshipSerializer(friendships, many=True)
-        return Response({
-            'success': True,
-            'data': serializer.data
-        }, status=status.HTTP_200_OK)
+            Q(user=request.user) | Q(friend=request.user)
+        )
+        
+        friends = []
+        for f in friendships:
+            # Decide who the "other" friend is
+            if f.user == request.user:
+                other_user = f.friend
+            else:
+                other_user = f.user
 
-class FriendRequestView(APIView):
+            friends.append({
+                'username': other_user.username,
+                'friend_code': other_user.friend_code
+            })
+
+        return Response(friends, status=200)
+
+class SendFriendRequestView(generics.CreateAPIView):
+    serializer_class = FriendRequestSerializer
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        friend_id = request.data.get('friend_id')
+    def create(self, request, *args, **kwargs):
+        code = request.data.get('friend_code')
         try:
-            friend = User.objects.get(id=friend_id)
-            if friend == request.user:
-                return Response({
-                    'success': False,
-                    'message': 'Cannot add yourself as a friend'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            friendship, created = Friendship.objects.get_or_create(
-                user=request.user, friend=friend, defaults={'status': 'pending'}
-            )
-            if not created and friendship.status != 'pending':
-                return Response({
-                    'success': False,
-                    'message': f'Friendship already {friendship.status}'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            return Response({
-                'success': True,
-                'message': 'Friend request sent'
-            }, status=status.HTTP_201_CREATED)
+            to_user = User.objects.get(friend_code=code)
         except User.DoesNotExist:
-            return Response({
-                'success': False,
-                'message': 'User not found'
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Invalid friend code'}, status=status.HTTP_400_BAD_REQUEST)
 
-    def put(self, request):
-        friend_id = request.data.get('friend_id')
-        action = request.data.get('action')  # 'accept' or 'reject'
-        try:
-            friendship = Friendship.objects.get(friend=request.user, user_id=friend_id, status='pending')
-            if action == 'accept':
-                friendship.status = 'accepted'
-                friendship.save()
-                return Response({
-                    'success': True,
-                    'message': 'Friend request accepted'
-                }, status=status.HTTP_200_OK)
-            elif action == 'reject':
-                friendship.status = 'rejected'
-                friendship.save()
-                return Response({
-                    'success': True,
-                    'message': 'Friend request rejected'
-                }, status=status.HTTP_200_OK)
-            else:
-                return Response({
-                    'success': False,
-                    'message': 'Invalid action'
-                }, status=status.HTTP_400_BAD_REQUEST)
-        except Friendship.DoesNotExist:
-            return Response({
-                'success': False,
-                'message': 'Friend request not found'
-            }, status=status.HTTP_404_NOT_FOUND)
+        if to_user == request.user:
+            return Response({'error': 'You cannot add yourself'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
+            return Response({'error': 'Friend request already sent'}, status=status.HTTP_400_BAD_REQUEST)
+
+        friend_request = FriendRequest.objects.create(from_user=request.user, to_user=to_user)
+        serializer = self.get_serializer(friend_request)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class UnreadMessagesView(APIView):
     permission_classes = [IsAuthenticated]
@@ -198,3 +173,58 @@ class ToggleEmotionView(APIView):
                 'success': False,
                 'message': 'Message not found or not authorized'
             }, status=status.HTTP_404_NOT_FOUND)
+        
+
+class RespondToFriendRequestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        friend_code = request.data.get('friend_code')
+        action = request.data.get('action')  # 'accept' or 'reject'
+
+        if not friend_code or action not in ['accept', 'reject']:
+            return Response({'error': 'Invalid data.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from_user = User.objects.get(friend_code=friend_code)
+        except User.DoesNotExist:
+            return Response({'error': 'Invalid friend code.'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            friend_request = FriendRequest.objects.get(from_user=from_user, to_user=request.user)
+        except FriendRequest.DoesNotExist:
+            return Response({'error': 'Friend request not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if friend_request.status != 'pending':
+            return Response({'error': 'Friend request already handled.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if action == 'accept':
+            friend_request.status = 'accepted'
+            friend_request.save()
+
+            # ✅ Create friendships (bidirectional)
+            Friendship.objects.get_or_create(user=request.user, friend=from_user)
+            Friendship.objects.get_or_create(user=from_user, friend=request.user)
+
+            return Response({'message': 'Friend request accepted and friendship created.'})
+
+        else:
+            friend_request.status = 'rejected'
+            friend_request.save()
+            return Response({'message': 'Friend request rejected.'})
+
+class RemoveFriendView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        friend_code = request.data.get('friend_code')
+        try:
+            friend = User.objects.get(friend_code=friend_code)
+        except User.DoesNotExist:
+            return Response({'error': 'Friend not found'}, status=404)
+
+        # Delete both directions
+        Friendship.objects.filter(user=request.user, friend=friend).delete()
+        Friendship.objects.filter(user=friend, friend=request.user).delete()
+
+        return Response({'message': 'Friend removed successfully'}, status=200)
