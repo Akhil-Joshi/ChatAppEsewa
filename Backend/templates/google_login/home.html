@@ -1,19 +1,83 @@
-{% load socialaccount %}
-{% providers_media_js %}
-
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Google Login Demo</title>
+  <meta charset="UTF-8">
+  <title>WebSocket Chat Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #chat-log { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll; margin-bottom: 10px; }
+    input, button { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+  </style>
 </head>
-
 <body>
-    <h3>Hello {{ name }}!</h3>
 
-    <button>
-        <a href="{% url 'logout' %}">Logout</a>
-    </button>
+  <h2>WebSocket Chat Tester</h2>
+
+  <label>Friend Code:</label>
+  <input type="text" id="friendCode" placeholder="e.g. abcd1234" />
+
+  <label>To (Username):</label>
+  <input type="text" id="recipient" placeholder="Optional: receiver username" />
+
+  <label>Group ID:</label>
+  <input type="text" id="groupId" placeholder="Optional: group ID" />
+
+  <div id="chat-log"></div>
+
+  <input type="text" id="messageInput" placeholder="Type a message..." />
+  <button onclick="sendMessage()">Send</button>
+
+  <script>
+    let socket;
+
+    function logMessage(msg, isIncoming = false) {
+      const chatLog = document.getElementById("chat-log");
+      const entry = document.createElement("div");
+      entry.style.color = isIncoming ? "green" : "blue";
+      entry.textContent = msg;
+      chatLog.appendChild(entry);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function connectWebSocket() {
+      const friendCode = document.getElementById("friendCode").value;
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      const wsUrl = `ws://127.0.0.1:8000/ws/chat/${friendCode}/`;
+      logMessage("🔗 Connecting to WebSocket: " + wsUrl);
+
+
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => logMessage("✅ WebSocket connected");
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        logMessage("📩 " + JSON.stringify(data), true);
+      };
+      socket.onclose = () => logMessage("❌ WebSocket closed");
+      socket.onerror = (err) => logMessage("⚠ WebSocket error: " + err);
+    }
+
+    function sendMessage() {
+      const message = document.getElementById("messageInput").value;
+      const recipient = document.getElementById("recipient").value;
+      const groupId = document.getElementById("groupId").value;
+
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        connectWebSocket();
+        setTimeout(sendMessage, 500); // retry after short delay
+        return;
+      }
+
+      const data = {
+        content: message,
+        to: recipient || null,
+        group_id: groupId || null
+      };
+      socket.send(JSON.stringify(data));
+      logMessage("📤 " + message);
+      document.getElementById("messageInput").value = "";
+    }
+  </script>
+
 </body>
-
-
 </html>

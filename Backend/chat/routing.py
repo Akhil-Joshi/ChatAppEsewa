@@ -1,5 +1,5 @@
 from django.urls import re_path
-from .consumers import ChatConsumer
+from .consumer import ChatConsumer
 
 websocket_urlpatterns = [
     # This makes each user have their own private WebSocket channel

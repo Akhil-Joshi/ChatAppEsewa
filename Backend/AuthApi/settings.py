@@ -7,13 +7,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = [
+ALLOWED_HOSTS = ['*',
     'localhost',
     '127.0.0.1',
     '.railway.app',  # For Railway domain
 ]
 
 INSTALLED_APPS = [
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -27,7 +28,6 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'rest_framework_simplejwt.token_blacklist',
     'core',
-    'channels',
     'chat',
 ]
 
@@ -65,13 +65,15 @@ TEMPLATES = [
 ASGI_APPLICATION = 'AuthApi.asgi.application'
 
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [(config('REDIS_HOST', default='localhost'), config('REDIS_PORT', default=6379))],
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+          "hosts": [("127.0.0.1", 6379)],
+            "hosts": [("redis.railway.internal", 6379)],
         },
     },
 }
+
 
 WSGI_APPLICATION = 'AuthApi.wsgi.application'
 

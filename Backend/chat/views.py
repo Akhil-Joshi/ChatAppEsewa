@@ -9,9 +9,6 @@ from .serializers import FriendshipSerializer, ChatGroupSerializer, MessageSeria
 from core.models import User
 from core.serializers import UserProfileSerializer
 from django.db.models import Q
-import nltk
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-nltk.download('vader_lexicon')
 
 
 class UnreadMessagesView(APIView):
@@ -112,25 +109,6 @@ class ProfileUpdateView(APIView):
             'data': UserProfileSerializer(user).data
         }, status=status.HTTP_200_OK)
 
-class ToggleEmotionView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, message_id):
-        try:
-            message = Message.objects.get(id=message_id, sender=request.user)
-            message.show_emotion = not message.show_emotion
-            message.save()
-            return Response({
-                'success': True,
-                'message': f"Emotion display {'enabled' if message.show_emotion else 'disabled'}"
-            }, status=status.HTTP_200_OK)
-        except Message.DoesNotExist:
-            return Response({
-                'success': False,
-                'message': 'Message not found or not authorized'
-            }, status=status.HTTP_404_NOT_FOUND)
-
-
 class PendingFriendRequestsView(generics.ListAPIView):
     """List all pending friend requests received by the authenticated user"""
     serializer_class = FriendRequestSerializer
@@ -160,14 +138,12 @@ class SendFriendRequestView(APIView):
         if to_user == request.user:
             return Response({'error': 'You cannot send a friend request to yourself.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if they're already friends
         if Friendship.objects.filter(user=request.user, friend=to_user).exists():
             return Response({'error': 'You are already friends with this user.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if FriendRequest.objects.filter(from_user=request.user, to_user=to_user, status='pending').exists():
             return Response({'error': 'Friend request already sent and pending.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create friend request
         friend_request = FriendRequest.objects.create(
             from_user=request.user,
             to_user=to_user,
@@ -180,7 +156,6 @@ class SendFriendRequestView(APIView):
             'data': FriendRequestSerializer(friend_request).data
         }, status=status.HTTP_201_CREATED)
 
-
 class FriendRequestHistoryView(generics.ListAPIView):
     """List all friend requests (sent and received) for the authenticated user"""
     serializer_class = FriendRequestSerializer
@@ -190,7 +165,6 @@ class FriendRequestHistoryView(generics.ListAPIView):
         return FriendRequest.objects.filter(
             Q(from_user=self.request.user) | Q(to_user=self.request.user)
         ).select_related('from_user', 'to_user')
-
 
 class RespondToFriendRequestView(APIView):
     """Accept or reject a friend request and create friendship if accepted"""
@@ -213,7 +187,6 @@ class RespondToFriendRequestView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Find the friend request
             friend_request = FriendRequest.objects.get(
                 from_user__friend_code=friend_code,
                 to_user=request.user,
@@ -225,26 +198,19 @@ class RespondToFriendRequestView(APIView):
                 'error': 'Friend request not found or already processed.'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # Update friend request status
         friend_request.status = 'accepted' if action == 'accept' else 'rejected'
         friend_request.save()
 
         if action == 'accept':
-            # Create bidirectional friendship
             from_user = friend_request.from_user
             to_user = friend_request.to_user
 
-            # Create friendship from requester to receiver
-            friendship1, created1 = Friendship.objects.get_or_create(
-                user=from_user,
-                friend=to_user
-            )
+            from django.db import transaction
 
-            # Create friendship from receiver to requester
-            friendship2, created2 = Friendship.objects.get_or_create(
-                user=to_user,
-                friend=from_user
-            )
+            with transaction.atomic():
+                friendship1, created1 = Friendship.objects.get_or_create(user=from_user, friend=to_user)
+                friendship2, created2 = Friendship.objects.get_or_create(user=to_user, friend=from_user)
+
 
             return Response({
                 'success': True,
@@ -264,18 +230,13 @@ class RespondToFriendRequestView(APIView):
                 }
             }, status=status.HTTP_200_OK)
 
-
 class FriendListView(APIView):
-
     """List all friends of the authenticated user with their details"""
     permission_classes = [IsAuthenticated]
-    def get_queryset(self):
-        return FriendRequest.objects.filter(to_user=self.request.user).order_by('-created_at')
-    
+
     def get(self, request):
         user = request.user
 
-        # Get users who are in accepted friend requests
         accepted_requests = FriendRequest.objects.filter(
             Q(from_user=user) | Q(to_user=user),
             status='accepted'
@@ -288,22 +249,19 @@ class FriendListView(APIView):
             else:
                 friend_users.add(fr.from_user)
 
-        friends_data = []
-        for friend in friend_users:
-            friends_data.append({
-                'id': friend.id,
-                'email': friend.email,
-                'full_name': friend.full_name,
-                'friend_code': friend.friend_code,
-                'profile_photo': friend.profile_photo.url if friend.profile_photo else None,
-            })
+        friends_data = [{
+            'id': friend.id,
+            'email': friend.email,
+            'full_name': friend.full_name,
+            'friend_code': friend.friend_code,
+            'profile_photo': friend.profile_photo.url if friend.profile_photo else None,
+        } for friend in friend_users]
 
         return Response({
             'success': True,
             'message': f'Found {len(friends_data)} friends.',
             'data': friends_data
         }, status=status.HTTP_200_OK)
-
 
 class MutualFriendsView(generics.ListAPIView):
     """List mutual friends between authenticated user and another user"""
@@ -312,22 +270,13 @@ class MutualFriendsView(generics.ListAPIView):
 
     def get_queryset(self):
         other_user_id = self.kwargs.get('user_id')
-        
-        # Get friends of the authenticated user
-        user_friends = Friendship.objects.filter(
-            user=self.request.user
-        ).values_list('friend_id', flat=True)
-        
-        # Get friends of the other user
-        other_user_friends = Friendship.objects.filter(
-            user_id=other_user_id
-        ).values_list('friend_id', flat=True)
-        
-        # Find mutual friends
-        mutual_friend_ids = set(user_friends).intersection(set(other_user_friends))
-        
-        return User.objects.filter(id__in=mutual_friend_ids)
 
+        user_friends = Friendship.objects.filter(user=self.request.user).values_list('friend_id', flat=True)
+        other_user_friends = Friendship.objects.filter(user_id=other_user_id).values_list('friend_id', flat=True)
+
+        mutual_friend_ids = set(user_friends).intersection(set(other_user_friends))
+
+        return User.objects.filter(id__in=mutual_friend_ids)
 
 class RemoveFriendView(APIView):
     """Remove a friend using their friend_code"""
@@ -335,37 +284,21 @@ class RemoveFriendView(APIView):
 
     def post(self, request):
         friend_code = request.data.get('friend_code')
-        
+
         if not friend_code:
-            return Response({
-                'success': False,
-                'error': 'friend_code is required.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'success': False, 'error': 'friend_code is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             friend = User.objects.get(friend_code=friend_code)
         except User.DoesNotExist:
-            return Response({
-                'success': False,
-                'error': 'User with provided friend_code not found.'
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response({'success': False, 'error': 'User with provided friend_code not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check if friendship exists
-        friendship_exists = Friendship.objects.filter(
-            user=request.user, 
-            friend=friend
-        ).exists()
-
+        friendship_exists = Friendship.objects.filter(user=request.user, friend=friend).exists()
         if not friendship_exists:
-            return Response({
-                'success': False,
-                'error': 'You are not friends with this user.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'success': False, 'error': 'You are not friends with this user.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Remove bidirectional friendship
         deleted_count = Friendship.objects.filter(
-            Q(user=request.user, friend=friend) |
-            Q(user=friend, friend=request.user)
+            Q(user=request.user, friend=friend) | Q(user=friend, friend=request.user)
         ).delete()[0]
 
         return Response({
@@ -377,41 +310,26 @@ class RemoveFriendView(APIView):
             }
         }, status=status.HTTP_200_OK)
 
-
 class FriendshipStatsView(APIView):
     """Get friendship statistics for the authenticated user"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        
+
         stats = {
             'total_friends': user.get_total_friends(),
-            'pending_requests_received': FriendRequest.objects.filter(
-                to_user=user, 
-                status='pending'
-            ).count(),
-            'pending_requests_sent': FriendRequest.objects.filter(
-                from_user=user, 
-                status='pending'
-            ).count(),
-            'total_requests_sent': FriendRequest.objects.filter(
-                from_user=user
-            ).count(),
-            'total_requests_received': FriendRequest.objects.filter(
-                to_user=user
-            ).count(),
+            'pending_requests_received': FriendRequest.objects.filter(to_user=user, status='pending').count(),
+            'pending_requests_sent': FriendRequest.objects.filter(from_user=user, status='pending').count(),
+            'total_requests_sent': FriendRequest.objects.filter(from_user=user).count(),
+            'total_requests_received': FriendRequest.objects.filter(to_user=user).count(),
             'accepted_requests': FriendRequest.objects.filter(
-                Q(from_user=user) | Q(to_user=user),
-                status='accepted'
+                Q(from_user=user) | Q(to_user=user), status='accepted'
             ).count(),
             'rejected_requests': FriendRequest.objects.filter(
-                Q(from_user=user) | Q(to_user=user),
-                status='rejected'
+                Q(from_user=user) | Q(to_user=user), status='rejected'
             ).count(),
         }
-        
-        return Response({
-            'success': True,
-            'data': stats
-        }, status=status.HTTP_200_OK)
+
+        return Response({'success': True, 'data': stats}, status=status.HTTP_200_OK)
+
