@@ -135,12 +135,13 @@ const DirectMessageScreen = ({ navigation }) => {
     searchButton: {
       flex: 1,
       backgroundColor: colors.card,
-      paddingVertical: 5,
-      paddingHorizontal: 20,
+      height: 45,
+      paddingVertical: 10,
+      paddingHorizontal: 15,
       borderRadius: 25,
       flexDirection: 'row',
       alignItems: 'center',
-      marginRight: 10,
+      // marginRight: 10,
     },
     searchInput: {
       color: colors.text,

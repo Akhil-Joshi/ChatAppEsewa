@@ -17,6 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
+
+
 const { width, height } = Dimensions.get('window');
 
 const ChatScreen = () => {
@@ -38,10 +40,242 @@ const ChatScreen = () => {
   // Use contact data from navigation params or fallback to default
   const contactData = {
     name: name || 'Contact',
-    avatar: avatar || 'https://randomuser.me/api/portraits/men/32.jpg',
+    avatar: avatar || null,
     status: isGroup ? `${getGroupMemberCount()} members` : 'Active now',
     isGroup: isGroup,
   };
+
+  const styles = StyleSheet.create({
+  
+    container: {
+      flex: 1,
+      backgroundColor: colors.primary,
+    },
+    mainContainer: {
+      flex: 1,
+    },
+    header: {
+      padding: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderBottomLeftRadius: 20,
+      borderBottomRightRadius: 20,
+
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    backButton: {
+      marginRight: 12,
+      padding: 8,
+      borderRadius: 20,
+    },
+    profileContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    profilePic: {
+      marginRight: 12,
+      position: 'relative',
+    },
+    profileImageContainer: {
+
+      borderWidth: 1,
+      borderColor: colors.border,
+
+    },
+    groupBadge: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+      width: 20,
+      height: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: colors.text,
+
+    },
+    userInfo: {
+      justifyContent: 'center',
+      flex: 1,
+    },
+    username: {
+      fontWeight: '700',
+      fontSize: 18,
+      marginBottom: 2,
+    },
+    status: {
+      fontSize: 13,
+      fontWeight: '500',
+    },
+    callButton: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    moreButton: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chatArea: {
+      flex: 1,
+      padding: 16,
+      backgroundColor: 'transparent',
+    },
+    messagesContainer: {
+      flex: 1,
+      backgroundColor: 'transparent',
+    },
+    messagesList: {
+      paddingVertical: 8,
+    },
+    emptyChatContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 40,
+    },
+    emptyChatAvatar: {
+      marginBottom: 20,
+      position: 'relative',
+    },
+    emptyChatImageContainer: {
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+    },
+    emptyGroupBadge: {
+      position: 'absolute',
+      bottom: -4,
+      right: -4,
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      width: 24,
+      height: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 3,
+      borderColor: colors.text,
+      elevation: 2,
+    },
+    emptyChatTitle: {
+      fontSize: 22,
+      fontWeight: '700',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    emptyChatSubtitle: {
+      fontSize: 16,
+      textAlign: 'center',
+      lineHeight: 22,
+      fontWeight: '400',
+    },
+    messageItem: {
+      maxWidth: '75%',
+      borderRadius: 20,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      marginVertical: 3,
+
+    },
+    sentMessage: {
+      alignSelf: 'flex-end',
+      borderBottomRightRadius: 6,
+    },
+    receivedMessage: {
+      alignSelf: 'flex-start',
+      borderBottomLeftRadius: 6,
+    },
+    messageText: {
+      fontSize: 15,
+      lineHeight: 20,
+      fontWeight: '400',
+    },
+    messageStatus: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 4,
+      alignSelf: 'flex-end',
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      padding: 12,
+      borderTopWidth: 1,
+      gap: 8,
+    },
+    menuButton: {
+      width: 42,
+      height: 42,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 21,
+    },
+    input: {
+      flex: 1,
+      borderRadius: 22,
+      paddingHorizontal: 18,
+      paddingVertical: 12,
+      fontSize: 16,
+      maxHeight: 100,
+      borderWidth: 1,
+    },
+    sendButton: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      alignItems: 'center',
+      justifyContent: 'center',
+
+    },
+    quickMessagesContainer: {
+      position: 'absolute',
+      bottom: 75,
+      left: 12,
+      borderRadius: 16,
+
+      width: '72%',
+      borderWidth: 1,
+      overflow: 'hidden',
+    },
+    quickMessageItem: {
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+    },
+    lastQuickMessageItem: {
+      borderBottomWidth: 0,
+    },
+    quickMessageText: {
+      fontSize: 15,
+      fontWeight: '500',
+    },
+    expandedMessagesContainer: {
+      flex: 3,
+    },
+    quickMessagesWithKeyboard: {
+      bottom: 130,
+    },
+  });
 
   // Function to get group member count (you can customize this based on your data)
   function getGroupMemberCount() {
@@ -55,6 +289,52 @@ const ChatScreen = () => {
     };
     return memberCounts[id] || Math.floor(Math.random() * 12) + 3;
   }
+
+  // Render avatar with fallback icon
+  const renderAvatar = (size = 40, customStyle = {}) => {
+    if (contactData.avatar) {
+      return (
+        <View style={[
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            overflow: 'hidden',
+          },
+          customStyle
+        ]}>
+          <Image
+            source={{ uri: contactData.avatar }}
+            style={{
+              width: '100%',
+              height: '100%',
+            }}
+          />
+        </View>
+      );
+    } else {
+      // Fallback to icon
+      return (
+        <View style={[
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: colors.primary + '20',
+            justifyContent: 'center',
+            alignItems: 'center',
+          },
+          customStyle
+        ]}>
+          <Ionicons 
+            name={contactData.isGroup ? "people" : "person"} 
+            size={size * 0.5} 
+            color={colors.text} 
+          />
+        </View>
+      );
+    }
+  };
 
   const quickMessages = [
     `Hello! ${contactData.name}`,
@@ -159,7 +439,7 @@ const ChatScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]}>
+      <SafeAreaView style={[styles.container]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.mainContainer, { backgroundColor: colors.background }]}
@@ -172,38 +452,35 @@ const ChatScreen = () => {
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="arrow-back" size={24} color="#fff" />
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
             <View style={styles.profileContainer}>
               <View style={styles.profilePic}>
-                <Image
-                  source={{ uri: contactData.avatar }}
-                  style={styles.profileImage}
-                />
+                {renderAvatar(40, styles.profileImageContainer)}
                 {contactData.isGroup && (
                   <View style={styles.groupBadge}>
-                    <Ionicons name="people" size={12} color="#fff" />
+                    <Ionicons name="people" size={12} color={colors.text} />
                   </View>
                 )}
               </View>
               <View style={styles.userInfo}>
-                <Text style={[styles.username, { color: '#fff' }]}>{contactData.name}</Text>
-                <Text style={[styles.status, { color: '#fff', opacity: 0.8 }]}>{contactData.status}</Text>
+                <Text style={[styles.username, { color: colors.text }]}>{contactData.name}</Text>
+                <Text style={[styles.status, { color: colors.text, opacity: 0.8 }]}>{contactData.status}</Text>
               </View>
             </View>
           </View>
           <View style={styles.headerRight}>
-            {contactData.isGroup ? (
-              <TouchableOpacity style={styles.callButton}>
-                <Ionicons name="videocam-outline" size={24} color="#fff" />
+            {/* {contactData.isGroup ? (
+              <TouchableOpacity style={[styles.callButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+                <Ionicons name="videocam-outline" size={22} color={colors.text} />
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={styles.callButton}>
-                <Ionicons name="call-outline" size={24} color="#fff" />
+              <TouchableOpacity style={[styles.callButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+                <Ionicons name="call-outline" size={22} color={colors.text} />
               </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.moreButton}>
-              <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+            )} */}
+            <TouchableOpacity style={[styles.moreButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+              <Ionicons name="ellipsis-vertical" size={18} color={colors.text} />
             </TouchableOpacity>
           </View>
         </View>
@@ -214,13 +491,10 @@ const ChatScreen = () => {
             {messages.length === 0 ? (
               <View style={styles.emptyChatContainer}>
                 <View style={styles.emptyChatAvatar}>
-                  <Image
-                    source={{ uri: contactData.avatar }}
-                    style={styles.emptyChatImage}
-                  />
+                  {renderAvatar(80, styles.emptyChatImageContainer)}
                   {contactData.isGroup && (
                     <View style={styles.emptyGroupBadge}>
-                      <Ionicons name="people" size={16} color="#fff" />
+                      <Ionicons name="people" size={16} color={colors.text} />
                     </View>
                   )}
                 </View>
@@ -239,6 +513,8 @@ const ChatScreen = () => {
                 ref={flatListRef}
                 data={messages}
                 keyExtractor={item => item.id}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.messagesList}
                 renderItem={({ item }) => (
                   <View style={[
                     styles.messageItem,
@@ -271,25 +547,27 @@ const ChatScreen = () => {
         {/* Message Input */}
         <View style={[styles.inputContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
           <TouchableOpacity
-            style={styles.menuButton}
+            style={[styles.menuButton, { backgroundColor: colors.primary + '15' }]}
             onPress={() => setShowQuickMessages(!showQuickMessages)}
-            activeOpacity={0.6}
+            activeOpacity={0.7}
           >
-            <Ionicons name="menu" size={28} color={colors.primary} />
+            <Ionicons name="menu" size={24} color={colors.primary} />
           </TouchableOpacity>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.background, color: colors.text }]}
+            style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
             placeholder={`Message ${contactData.name}...`}
-            placeholderTextColor={colors.text + '80'}
+            placeholderTextColor={colors.text + '60'}
             value={message}
             onChangeText={setMessage}
+            multiline
+            maxLength={500}
           />
           <TouchableOpacity
             style={[styles.sendButton, { backgroundColor: colors.primary }]}
-            activeOpacity={0.6}
+            activeOpacity={0.8}
             onPress={sendMessage}
           >
-            <Ionicons name="send" size={24} color="#fff" />
+            <Ionicons name="send" size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
 
@@ -297,14 +575,19 @@ const ChatScreen = () => {
         {showQuickMessages && (
           <View style={[
             styles.quickMessagesContainer,
-            { backgroundColor: colors.card },
+            { backgroundColor: colors.card, borderColor: colors.border },
             keyboardVisible && styles.quickMessagesWithKeyboard
           ]}>
             {quickMessages.map((msg, index) => (
               <TouchableOpacity
                 key={index}
-                style={[styles.quickMessageItem, { borderBottomColor: colors.border }]}
+                style={[
+                  styles.quickMessageItem, 
+                  { borderBottomColor: colors.border },
+                  index === quickMessages.length - 1 && styles.lastQuickMessageItem
+                ]}
                 onPress={() => handleQuickMessage(msg)}
+                activeOpacity={0.7}
               >
                 <Text style={[styles.quickMessageText, { color: colors.text }]}>{msg}</Text>
               </TouchableOpacity>
@@ -316,217 +599,5 @@ const ChatScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  mainContainer: {
-    flex: 1,
-  },
-  header: {
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButton: {
-    marginRight: 10,
-    padding: 5,
-  },
-  profileContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  profilePic: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginRight: 12,
-    position: 'relative',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-  },
-  groupBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: '#6c5ce7',
-    borderRadius: 8,
-    width: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  userInfo: {
-    justifyContent: 'center',
-    flex: 1,
-  },
-  username: {
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  status: {
-    fontSize: 12,
-  },
-  callButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  moreButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chatArea: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: 'transparent',
-  },
-  messagesContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  emptyChatContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyChatAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 16,
-    position: 'relative',
-  },
-  emptyChatImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 40,
-  },
-  emptyGroupBadge: {
-    position: 'absolute',
-    bottom: -4,
-    right: -4,
-    backgroundColor: '#6c5ce7',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
-  },
-  emptyChatTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyChatSubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  messageItem: {
-    maxWidth: '70%',
-    borderRadius: 18,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginVertical: 4,
-  },
-  sentMessage: {
-    alignSelf: 'flex-end',
-    borderBottomRightRadius: 4,
-  },
-  receivedMessage: {
-    alignSelf: 'flex-start',
-    borderBottomLeftRadius: 4,
-  },
-  messageText: {
-    fontSize: 14,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderTopWidth: 1,
-  },
-  menuButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  input: {
-    flex: 1,
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    marginHorizontal: 8,
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickMessagesContainer: {
-    position: 'absolute',
-    bottom: 70,
-    left: 10,
-    borderRadius: 12,
-    padding: 8,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    width: '70%',
-  },
-  quickMessageItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-  },
-  quickMessageText: {
-    fontSize: 14,
-  },
-  expandedMessagesContainer: {
-    flex: 3,
-  },
-  quickMessagesWithKeyboard: {
-    bottom: 120,
-  },
-  messageStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-    alignSelf: 'flex-end',
-  },
-});
 
 export default ChatScreen;

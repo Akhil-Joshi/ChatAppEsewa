@@ -104,6 +104,16 @@ const handleLogin = async () => {
       ['@refresh_token', tokens.refresh],
     ]);
 
+const values = await AsyncStorage.multiGet([
+  '@user_id',
+  '@email',
+  '@full_name',
+  '@access_token',
+  '@refresh_token',
+]);
+
+console.log('Stored values in async storage...:', values);
+
     // Update the AuthContext state
     await authLogin(tokens.access);
 

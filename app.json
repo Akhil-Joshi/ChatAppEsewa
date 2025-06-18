@@ -21,15 +21,16 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.akhiljoshi.ChatApp"
+      "package": "com.unknowngamer.ChatApp"
     },
     "web": {
       "favicon": "./assets/logo.png"
     },
     "extra": {
       "eas": {
-        "projectId": "54d9af1c-c5ec-4f1e-aa4f-ed61eafe5a50"
+        "projectId": "5667c172-670f-458f-aa38-f1ff938b96a3"
       }
-    }
+    },
+    "owner": "unknowngamer"
   }
 }

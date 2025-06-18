@@ -75,7 +75,44 @@ export const resetPassword = async (userData) => {
   }
 }
 
+// Send Friend Request
+export const sendFriendRequest = async (token, userData) => {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}chat/send-friend-request/`,
+      userData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('API error:', error);
+    throw error.response?.data || { message: 'Network error or server not responding' };
+  }
+};
 
+// handle friend request
+export const handleFriendRequest = async (token, friend_code, userData) => {
+  try {
+    const response = await axios.post(`${BASE_URL}chat/friends/respond/`, {
+      friend_code, 
+      ...userData, 
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('API error:', error);
+    throw error.response?.data || { message: 'Network error or server not responding' };
+  }
+};
 
 
 
