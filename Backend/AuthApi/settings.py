@@ -1,7 +1,7 @@
 import os
 from decouple import config
 from datetime import timedelta
-import urllib.parse
+import urllib.parse as urlparse
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -66,16 +66,12 @@ TEMPLATES = [
 ASGI_APPLICATION = 'AuthApi.asgi.application'
 
 
-# Parse the Redis URL
-redis_url = os.getenv("REDIS_URL", "redis://default:RkyWguQOCDGqpYTvBcKIaDANxglFPrEc@gondola.proxy.rlwy.net:40640")
-parsed_url = urllib.parse.urlparse(redis_url)
-
+url = urlparse.urlparse(os.getenv("REDIS_URL"))
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(parsed_url.hostname, parsed_url.port)],
-            "password": parsed_url.password,
+            "hosts": [(url.hostname, url.port)],
         },
     },
 }
