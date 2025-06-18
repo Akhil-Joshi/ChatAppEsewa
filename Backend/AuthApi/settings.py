@@ -7,7 +7,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*',
+ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '.railway.app',  # For Railway domain
@@ -68,8 +68,8 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-          "hosts": [("127.0.0.1", 6379)],
-            "hosts": [("redis.railway.internal", 6379)],
+          # "hosts": [("127.0.0.1", 6379)],
+          "hosts": [("redis.railway.internal", 6379)],
         },
     },
 }
