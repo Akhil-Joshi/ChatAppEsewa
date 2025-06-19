@@ -1,7 +1,8 @@
 from django.urls import re_path
-from .consumer import ChatConsumer
+from .consumer import ChatConsumer, PrivateChatConsumer
+
 
 websocket_urlpatterns = [
-    # This makes each user have their own private WebSocket channel
-    re_path(r'ws/chat/(?P<friend_code>\w+)/$', ChatConsumer.as_asgi()),
+    re_path(r"ws/chat/$", ChatConsumer.as_asgi()),
+     re_path(r"ws/private/(?P<friend_code>\\w{6,20})/$", PrivateChatConsumer.as_asgi()),
 ]

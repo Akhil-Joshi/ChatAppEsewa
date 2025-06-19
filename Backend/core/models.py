@@ -64,7 +64,7 @@ class User(AbstractBaseUser):
     def save(self, *args, **kwargs):
         if not self.friend_code:
             code = generate_friend_code()
-            while User.objects.filter(friend_code=code).exists():
+            while self.__class__.objects.filter(friend_code=code).exists():
                 code = generate_friend_code()
             self.friend_code = code
         super().save(*args, **kwargs)
