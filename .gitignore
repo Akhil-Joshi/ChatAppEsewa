@@ -1,0 +1,13 @@
+# Python virtual environment
+venv/
+.env
+
+# Bytecode and cache
+__pycache__/
+*.py[cod]
+
+# SQLite database
+# *.sqlite3
+/staticfiles/
+/media/
+/templates/
