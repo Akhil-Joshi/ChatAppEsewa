@@ -1,3 +1,2 @@
 web: python manage.py migrate && python manage.py collectstatic --noinput && gunicorn AuthApi.wsgi
 
-web: daphne yourproject.asgi:application --port $PORT --bind 0.0.0.0

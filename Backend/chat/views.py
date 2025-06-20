@@ -13,6 +13,17 @@ from django.db import transaction
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import json
+from datetime import timedelta
+from django.utils import timezone
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .models import ChatGroup, Message
+from .serializers import ChatGroupSerializer, UserProfileSerializer
+from django.db.models import Q
+from datetime import timedelta
+from django.utils import timezone
 
 
 
@@ -620,6 +631,72 @@ class SendMessageView(APIView):
                 'success': False,
                 'error': f'Failed to send message: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+class GetGroupDetailsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, group_id):
+        try:
+            group = ChatGroup.objects.get(id=group_id)
+            
+            # Check if user is a member or creator of the group
+            if group.creator != request.user and not group.members.filter(id=request.user.id).exists():
+                return Response({
+                    'success': False,
+                    'error': 'You are not authorized to view this group'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Get recent system messages about member additions (e.g., last 7 days)
+            time_threshold = timezone.now() - timedelta(days=7)
+            new_member_messages = Message.objects.filter(
+                group=group,
+                content__contains='added',
+                timestamp__gte=time_threshold
+            ).order_by('-timestamp')
+
+            # Extract new members from system messages
+            new_members = []
+            for message in new_member_messages:
+                # Assuming message content is like: "User added John Doe, Jane Doe to the group"
+                added_names = message.content.split('added ')[1].split(' to the group')[0].split(', ')
+                for name in added_names:
+                    # Find users matching the name or email
+                    user = group.members.filter(
+                        Q(first_name__icontains=name) | models.Q(last_name__icontains=name) | Q(email=name)
+                    ).first()
+                    if user and not any(m['user']['id'] == user.id for m in new_members):
+                        new_members.append({
+                            'user': {
+                                'id': user.id,
+                                'full_name': user.full_name,
+                                'email': user.email,
+                                'profile_photo': user.profile_photo.url if user.profile_photo else None
+                            },
+                            'added_at': message.timestamp
+                        })
+
+            # Prepare the response data
+            response_data = {
+                'success': True,
+                'data': {
+                    'group': {
+                        'id': group.id,
+                        'name': group.name,
+                        'total_members': group.members.count()
+                    },
+                    'new_members': new_members
+                }
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        except ChatGroup.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Group not found'
+            }, status=status.HTTP_404_NOT_FOUND)
 
 class AddGroupMembersView(APIView):
     """Add new members to a group using their friend codes"""
