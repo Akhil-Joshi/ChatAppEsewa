@@ -13,8 +13,6 @@ from django.db import transaction
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import json
-from datetime import timedelta
-from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -22,8 +20,6 @@ from rest_framework import status
 from .models import ChatGroup, Message
 from .serializers import ChatGroupSerializer, UserProfileSerializer
 from django.db.models import Q
-from datetime import timedelta
-from django.utils import timezone
 
 
 
@@ -631,24 +627,41 @@ class SendMessageView(APIView):
                 'error': f'Failed to send message: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+
 class JoinedGroupsView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         user = request.user
         joined_groups = user.chat_groups.all()
 
-        groups_data = [
-            {
+        groups_data = []
+
+        for group in joined_groups:
+            latest_message = (
+                Message.objects
+                .filter(group=group)
+                .order_by('-timestamp')
+                .first()
+            )
+
+            groups_data.append({
                 "id": group.id,
                 "name": group.name,
                 "is_private": group.is_private,
-                "created_at": group.created_at
-            }
-            for group in joined_groups
-        ]
+                "created_at": group.created_at,
+                "recent_message": {
+                    "content": latest_message.content if latest_message else None,
+                   "sender": f"{latest_message.sender.first_name} {latest_message.sender.last_name}" if latest_message else None,
+                    "created_at": latest_message.timestamp if latest_message else None,
+                } if latest_message else None
+            })
 
         return Response({
             "joined_groups": groups_data
         })
+
     
 class GroupMembersView(APIView):
     def get(self, request, *args, **kwargs):

@@ -5,7 +5,7 @@ from .views import (
     RespondToFriendRequestView, RemoveFriendView, PendingFriendRequestsView,
     FriendRequestHistoryView, FriendshipStatsView, MutualFriendsView,
     # Add these new imports
-    #ChatDetailView,  # This is commented out in the original code
+    #ChatDetailView,  
     SendMessageView, GetMessagesView, GroupMembersView,JoinedGroupsView, AddGroupMembersView
 
 
