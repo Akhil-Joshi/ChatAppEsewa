@@ -562,10 +562,6 @@ class JoinedGroupsView(APIView):
         return Response({
             "joined_groups": groups_data
         })
- 
-
-
-
 
 class GroupMembersView(APIView):
     permission_classes = [IsAuthenticated]
@@ -598,7 +594,6 @@ class GroupMembersView(APIView):
             "group_name": group.name,
             "members": member_data
         })
-
 
 class AddGroupMembersView(APIView):
     """Add new members to a group using their friend codes"""
@@ -804,7 +799,43 @@ class GetMessagesView(APIView):
                 'success': False,
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
+class RecentDirectMessagesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # Get all friends (assuming symmetric friendship relation)
+        friend_ids = Friendship.objects.filter(
+            Q(user=user) | Q(friend=user)
+        ).values_list('user_id', 'friend_id')
+
+        # Extract unique friend IDs (excluding self)
+        friends = set()
+        for u1, u2 in friend_ids:
+            if u1 != user.id:
+                friends.add(u1)
+            if u2 != user.id:
+                friends.add(u2)
+
+        result = []
+        for friend_id in friends:
+            friend = User.objects.get(id=friend_id)
+
+            last_message = Message.objects.filter(
+                Q(sender=user, recipient=friend) |
+                Q(sender=friend, recipient=user)
+            ).order_by('-timestamp').first()
+
+            if last_message:
+                result.append({
+                    "friend": UserProfileSerializer(friend).data,
+                    "last_message": MessageSerializer(last_message).data
+                })
+
+        return Response(result)
+
 
 # Add these views to your existing views.py file
 

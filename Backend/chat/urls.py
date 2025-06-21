@@ -6,7 +6,7 @@ from .views import (
     FriendRequestHistoryView, FriendshipStatsView, MutualFriendsView,
     # Add these new imports
     #ChatDetailView,  
-    SendMessageView, GetMessagesView, GroupMembersView,JoinedGroupsView, AddGroupMembersView
+    SendMessageView, GetMessagesView,RecentDirectMessagesView, GroupMembersView,JoinedGroupsView, AddGroupMembersView
 )
 
 app_name = 'chat'
@@ -32,6 +32,7 @@ urlpatterns = [
     # path('detail/', ChatDetailView.as_view(), name='chat-detail'),  # GET with friend_code param
     path('message/send/', SendMessageView.as_view(), name='send-message'),  # POST message
     path('messages/', GetMessagesView.as_view(), name='get-messages'),
+    path('direct-messages/', RecentDirectMessagesView.as_view(), name='recent-direct-messages'),
     
     # Group management
     path('group/create/', CreateGroupView.as_view(), name='create-group'),
