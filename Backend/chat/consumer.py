@@ -2,326 +2,251 @@
 # import base64
 # from channels.generic.websocket import AsyncWebsocketConsumer
 # from channels.db import database_sync_to_async
-# from django.contrib.auth import get_user_model
+# from django.utils import timezone
 # from django.core.files.base import ContentFile
 # from django.utils.crypto import get_random_string
-# from .models import Message, ChatGroup, Friendship
-# from .serializers import MessageSerializer
+# from django.contrib.auth import get_user_model
+# from .models import ChatGroup, Message
 
 # User = get_user_model()
 
 # class ChatConsumer(AsyncWebsocketConsumer):
+#     """WebSocket consumer for group chat (uses group_id)."""
+
 #     async def connect(self):
 #         self.user = self.scope["user"]
-#         self.user_group_name = f"user_{self.user.id}"
-
-#         if self.user.is_anonymous:
+#         if not self.user.is_authenticated:
 #             await self.close()
 #             return
 
-#         # Join user's personal room for direct messages
-#         await self.channel_layer.group_add(
-#             self.user_group_name,
-#             self.channel_name
-#         )
+#         # Get group_id from URL kwargs
+#         self.group_id = self.scope['url_route']['kwargs']['group_id']
+#         self.room_group_name = f"chat_{self.group_id}"
 
-#         # Join all groups user is a member of
-#         user_groups = await self.get_user_groups()
-#         for group in user_groups:
-#             group_name = f"group_{group.id}"
-#             await self.channel_layer.group_add(
-#                 group_name,
-#                 self.channel_name
-#             )
-
+#         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 #         await self.accept()
 
-#         # Send online status
-#         await self.send_online_status(True)
+#         # Load last 50 messages
+#         messages = await self.get_last_messages()
+#         for msg in messages:
+#             await self.send(text_data=json.dumps(msg))
 
 #     async def disconnect(self, close_code):
-#         # Leave user's personal room
-#         await self.channel_layer.group_discard(
-#             self.user_group_name,
-#             self.channel_name
-#         )
-
-#         # Leave all group rooms
-#         user_groups = await self.get_user_groups()
-#         for group in user_groups:
-#             group_name = f"group_{group.id}"
-#             await self.channel_layer.group_discard(
-#                 group_name,
-#                 self.channel_name
-#             )
-
-#         # Send offline status
-#         await self.send_online_status(False)
+#         if hasattr(self, 'room_group_name'):
+#             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
 #     async def receive(self, text_data):
+#         if not text_data.strip():
+#             return
+
 #         try:
 #             data = json.loads(text_data)
-#             message_type = data.get('type')
-
-#             if message_type == 'typing_indicator':
-#                 await self.handle_typing_indicator(data)
-#             elif message_type == 'mark_as_read':
-#                 await self.handle_mark_as_read(data)
-#             elif message_type == 'join_group':
-#                 await self.handle_join_group(data)
-#             elif message_type == 'leave_group':
-#                 await self.handle_leave_group(data)
-#             elif message_type == 'send_message':
-#                 await self.handle_send_message(data)
 #         except json.JSONDecodeError:
 #             await self.send(text_data=json.dumps({
-#                 'error': 'Invalid JSON format'
+#                 "type": "error",
+#                 "message": "Invalid JSON format."
 #             }))
+#             return
 
-#     async def send_message(self, event):
-#         message = event['message']
-#         await self.send(text_data=message)
-
-#     async def message_sent_confirmation(self, event):
-#         message = event['message']
-#         await self.send(text_data=message)
-
-#     async def typing_indicator(self, event):
-#         await self.send(text_data=json.dumps(event['data']))
-
-#     async def user_online_status(self, event):
-#         await self.send(text_data=json.dumps(event['data']))
-
-#     async def handle_typing_indicator(self, data):
-#         recipient_id = data.get('recipient_id')
-#         group_id = data.get('group_id')
-#         is_typing = data.get('is_typing', False)
-
-#         typing_data = {
-#             'type': 'typing_indicator',
-#             'user_id': self.user.id,
-#             'user_name': self.user.full_name or self.user.email,
-#             'is_typing': is_typing
-#         }
-
-#         if recipient_id:
-#             await self.channel_layer.group_send(
-#                 f"user_{recipient_id}",
-#                 {
-#                     'type': 'typing_indicator',
-#                     'data': typing_data
-#                 }
-#             )
-#         elif group_id:
-#             await self.channel_layer.group_send(
-#                 f"group_{group_id}",
-#                 {
-#                     'type': 'typing_indicator',
-#                     'data': typing_data
-#                 }
-#             )
-
-#     async def handle_mark_as_read(self, data):
-#         message_id = data.get('message_id')
-#         if message_id:
-#             await self.mark_message_as_read(message_id)
-
-#     async def handle_join_group(self, data):
-#         group_id = data.get('group_id')
-#         if group_id:
-#             await self.channel_layer.group_add(
-#                 f"group_{group_id}",
-#                 self.channel_name
-#             )
-
-#     async def handle_leave_group(self, data):
-#         group_id = data.get('group_id')
-#         if group_id:
-#             await self.channel_layer.group_discard(
-#                 f"group_{group_id}",
-#                 self.channel_name
-#             )
-
-#     async def handle_send_message(self, data):
-#         content = data.get('content')
-#         group_id = data.get('group_id')
-#         recipient_id = data.get('recipient_id')
-#         file_data = data.get('file')
-
+#         message = data.get("message", "")
+#         file_data = data.get("file")
+#         file_name = data.get("filename")
 #         file_obj = None
+
 #         if file_data:
-#             format, imgstr = file_data.split(';base64,')
-#             ext = format.split('/')[-1]
-#             file_name = f"upload_{get_random_string(8)}.{ext}"
-#             file_obj = ContentFile(base64.b64decode(imgstr), name=file_name)
+#             try:
+#                 format, imgstr = file_data.split(";base64,")
+#                 ext = format.split("/")[-1]
+#                 file_name = f"upload_{get_random_string(8)}.{ext}"
+#                 file_obj = ContentFile(base64.b64decode(imgstr), name=file_name)
+#             except Exception as e:
+#                 await self.send(text_data=json.dumps({
+#                     "type": "error",
+#                     "message": f"Failed to decode file: {str(e)}"
+#                 }))
+#                 return
 
-#         if not content and not file_obj:
+#         group = await self.get_chat_group()
+#         if not group:
+#             await self.send(text_data=json.dumps({
+#                 "type": "error",
+#                 "message": "Chat group does not exist."
+#             }))
 #             return
 
-#         message = await self.create_message(self.user, content, group_id, recipient_id, file_obj)
-#         serialized = MessageSerializer(message).data
-
-#         if group_id:
-#             room = f"group_{group_id}"
-#         elif recipient_id:
-#             room = f"user_{recipient_id}"
-#         else:
-#             return
+#         saved_msg = await self.save_message(message, file_obj, group)
+#         file_url = saved_msg.file.url if saved_msg and saved_msg.file else None
 
 #         await self.channel_layer.group_send(
-#             room,
+#             self.room_group_name,
 #             {
-#                 'type': 'send_message',
-#                 'message': json.dumps({
-#                     'type': 'chat_message',
-#                     'message': serialized
-#                 })
+#                 "type": "chat_message",
+#                 "message": message,
+#                 "username": f"{self.user.first_name} {self.user.last_name}".strip() or self.user.username,
+#                 "timestamp": timezone.now().isoformat(),
+#                 "file": file_url,
+#                 "filename": file_name if file_url else None
 #             }
 #         )
 
-#     async def send_online_status(self, is_online):
-#         friends = await self.get_user_friends()
-#         for friend in friends:
-#             await self.channel_layer.group_send(
-#                 f"user_{friend.id}",
-#                 {
-#                     'type': 'user_online_status',
-#                     'data': {
-#                         'type': 'user_status',
-#                         'user_id': self.user.id,
-#                         'user_name': self.user.full_name or self.user.email,
-#                         'is_online': is_online
-#                     }
-#                 }
+#     async def chat_message(self, event):
+#         await self.send(text_data=json.dumps({
+#             "message": event["message"],
+#             "username": event["username"],
+#             "timestamp": event["timestamp"],
+#             "file": event.get("file"),
+#             "filename": event.get("filename")
+#         }))
+
+#     @database_sync_to_async
+#     def save_message(self, content, file=None, group=None):
+#         try:
+#             return Message.objects.create(
+#                 sender=self.user,
+#                 group=group,
+#                 content=content,
+#                 file=file,
+#                 timestamp=timezone.now(),
+#                 is_read=False,
 #             )
-
-#     @database_sync_to_async
-#     def get_user_groups(self):
-#         return list(ChatGroup.objects.filter(members=self.user))
-
-#     @database_sync_to_async
-#     def get_user_friends(self):
-#         return [f.friend for f in Friendship.objects.filter(user=self.user)]
-
-#     @database_sync_to_async
-#     def mark_message_as_read(self, message_id):
-#         try:
-#             message = Message.objects.get(id=message_id, recipient=self.user)
-#             message.is_read = True
-#             message.save()
-#             return True
-#         except Message.DoesNotExist:
-#             return False
-
-#     @database_sync_to_async
-#     def create_message(self, sender, content, group_id=None, recipient_id=None, file=None):
-#         kwargs = {'sender': sender, 'content': content, 'file': file}
-#         if group_id:
-#             kwargs['group_id'] = group_id
-#         if recipient_id:
-#             kwargs['recipient_id'] = recipient_id
-#         return Message.objects.create(**kwargs)
-    
-    
-# import json
-# import base64
-# from channels.generic.websocket import AsyncWebsocketConsumer
-# from channels.db import database_sync_to_async
-# from django.contrib.auth import get_user_model
-# from django.core.files.base import ContentFile
-# from django.utils.crypto import get_random_string
-# from .models import Message, Friendship
-# from .serializers import MessageSerializer
-
-# User = get_user_model()
-
-# class PrivateChatConsumer(AsyncWebsocketConsumer):
-#     async def connect(self):
-#         self.user = self.scope["user"]
-#         self.friend_code = self.scope['url_route']['kwargs']['friend_code']
-
-#         if self.user.is_anonymous:
-#             await self.close()
-#             return
-
-#         self.friend = await self.get_friend_by_code(self.friend_code)
-#         if not self.friend:
-#             await self.close()
-#             return
-
-#         self.room_name = self.get_room_name(self.user.friend_code, self.friend.friend_code)
-
-#         is_friend = await self.check_friendship(self.user, self.friend)
-#         if not is_friend:
-#             await self.close()
-#             return
-
-#         await self.channel_layer.group_add(
-#             self.room_name,
-#             self.channel_name
-#         )
-#         await self.accept()
-
-#     async def disconnect(self, close_code):
-#         await self.channel_layer.group_discard(
-#             self.room_name,
-#             self.channel_name
-#         )
-
-#     async def receive(self, text_data):
-#         try:
-#             data = json.loads(text_data)
-#             content = data.get('content')
-#             file_data = data.get('file')
-
-#             file_obj = None
-#             if file_data:
-#                 format, imgstr = file_data.split(';base64,')
-#                 ext = format.split('/')[-1]
-#                 file_name = f"upload_{get_random_string(8)}.{ext}"
-#                 file_obj = ContentFile(base64.b64decode(imgstr), name=file_name)
-
-#             if not content and not file_obj:
-#                 return
-
-#             message = await self.create_message(self.user, self.friend, content, file_obj)
-#             serialized = MessageSerializer(message).data
-
-#             await self.channel_layer.group_send(
-#                 self.room_name,
-#                 {
-#                     'type': 'send_message',
-#                     'message': json.dumps({
-#                         'type': 'private_chat_message',
-#                         'message': serialized
-#                     })
-#                 }
-#             )
-#         except json.JSONDecodeError:
-#             await self.send(text_data=json.dumps({'error': 'Invalid JSON format'}))
-
-#     async def send_message(self, event):
-#         await self.send(text_data=event['message'])
-
-#     def get_room_name(self, code1, code2):
-#         return f"private_{'_'.join(sorted([code1, code2]))}"
-
-#     @database_sync_to_async
-#     def get_friend_by_code(self, code):
-#         try:
-#             return User.objects.get(friend_code=code)
-#         except User.DoesNotExist:
+#         except Exception as e:
+#             print(f"Save error: {e}")
 #             return None
 
 #     @database_sync_to_async
-#     def check_friendship(self, user, friend):
-#         return Friendship.objects.filter(user=user, friend=friend).exists()
+#     def get_last_messages(self):
+#         try:
+#             group = ChatGroup.objects.get(id=self.group_id)
+#             messages = Message.objects.filter(group=group).select_related("sender").order_by("-timestamp")[:50][::-1]
+#             return [self.format_message(msg) for msg in messages]
+#         except ChatGroup.DoesNotExist:
+#             return []
 
 #     @database_sync_to_async
-#     def create_message(self, sender, recipient, content, file_obj):
-#         return Message.objects.create(
-#             sender=sender,
-#             recipient=recipient,
-#             content=content,
-#             file=file_obj
-#         )
+#     def get_chat_group(self):
+#         try:
+#             return ChatGroup.objects.get(id=self.group_id)
+#         except ChatGroup.DoesNotExist:
+#             return None
+
+#     def format_message(self, msg):
+#         return {
+#             "username": f"{msg.sender.first_name} {msg.sender.last_name}".strip() or msg.sender.username,
+#             "message": msg.content,
+#             "timestamp": msg.timestamp.isoformat(),
+#             "file": msg.file.url if msg.file else None,
+#             "filename": msg.file.name.split("/")[-1] if msg.file else None
+#         }
+
+import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+from .models import ChatGroup, Message
+
+User = get_user_model()
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    """WebSocket consumer for group chat (uses group_id)."""
+
+    async def connect(self):
+        self.user = self.scope["user"]
+        if not self.user.is_authenticated:
+            await self.close()
+            return
+
+        self.group_id = self.scope['url_route']['kwargs']['group_id']
+        self.room_group_name = f"chat_{self.group_id}"
+
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+
+        messages = await self.get_last_messages()
+        for msg in messages:
+            await self.send(text_data=json.dumps(msg))
+
+    async def disconnect(self, close_code):
+        if hasattr(self, 'room_group_name'):
+            await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+    async def receive(self, text_data):
+        if not text_data.strip():
+            return
+
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            await self.send(text_data=json.dumps({
+                "type": "error",
+                "message": "Invalid JSON format."
+            }))
+            return
+
+        message = data.get("message", "")
+        if not message:
+            return
+
+        group = await self.get_chat_group()
+        if not group:
+            await self.send(text_data=json.dumps({
+                "type": "error",
+                "message": "Chat group does not exist."
+            }))
+            return
+
+        saved_msg = await self.save_message(message, group)
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "chat_message",
+                "message": message,
+                "username": f"{self.user.first_name} {self.user.last_name}".strip() or self.user.username,
+                "timestamp": timezone.now().isoformat()
+            }
+        )
+
+    async def chat_message(self, event):
+        await self.send(text_data=json.dumps({
+            "message": event["message"],
+            "username": event["username"],
+            "timestamp": event["timestamp"]
+        }))
+
+    @database_sync_to_async
+    def save_message(self, content, group=None):
+        try:
+            return Message.objects.create(
+                sender=self.user,
+                group=group,
+                content=content,
+                timestamp=timezone.now(),
+                is_read=False,
+            )
+        except Exception as e:
+            print(f"Save error: {e}")
+            return None
+
+    @database_sync_to_async
+    def get_last_messages(self):
+        try:
+            group = ChatGroup.objects.get(id=self.group_id)
+            messages = Message.objects.filter(group=group).select_related("sender").order_by("-timestamp")[:50][::-1]
+            return [self.format_message(msg) for msg in messages]
+        except ChatGroup.DoesNotExist:
+            return []
+
+    @database_sync_to_async
+    def get_chat_group(self):
+        try:
+            return ChatGroup.objects.get(id=self.group_id)
+        except ChatGroup.DoesNotExist:
+            return None
+
+    def format_message(self, msg):
+        return {
+            "username": f"{msg.sender.first_name} {msg.sender.last_name}".strip() or msg.sender.username,
+            "message": msg.content,
+            "timestamp": msg.timestamp.isoformat()
+        }

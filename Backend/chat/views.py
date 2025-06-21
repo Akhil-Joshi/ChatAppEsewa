@@ -342,193 +342,291 @@ class FriendshipStatsView(APIView):
 
         return Response({'success': True, 'data': stats}, status=status.HTTP_200_OK)
 
-class SendMessageView(APIView):
-    """Send a message to a friend or group with WebSocket real-time delivery"""
-    permission_classes = [IsAuthenticated]
+# class SendMessageView(APIView):
+#     """Send a message to a friend or group with WebSocket real-time delivery"""
+#     permission_classes = [IsAuthenticated]
     
-    def post(self, request):
-        friend_code = request.data.get('friend_code')
-        group_id = request.data.get('group_id')
-        content = request.data.get('content')
-        emotion = request.data.get('emotion')
-        show_emotion = request.data.get('show_emotion', True)
+#     def post(self, request):
+#         friend_code = request.data.get('friend_code')
+#         group_id = request.data.get('group_id')
+#         content = request.data.get('content')
+#         emotion = request.data.get('emotion')
+#         show_emotion = request.data.get('show_emotion', True)
         
-        if not content:
-            return Response({
-                'success': False,
-                'error': 'Message content is required'
-            }, status=status.HTTP_400_BAD_REQUEST)
+#         if not content:
+#             return Response({
+#                 'success': False,
+#                 'error': 'Message content is required'
+#             }, status=status.HTTP_400_BAD_REQUEST)
         
-        if not friend_code and not group_id:
-            return Response({
-                'success': False,
-                'error': 'Either friend_code or group_id is required'
-            }, status=status.HTTP_400_BAD_REQUEST)
+#         if not friend_code and not group_id:
+#             return Response({
+#                 'success': False,
+#                 'error': 'Either friend_code or group_id is required'
+#             }, status=status.HTTP_400_BAD_REQUEST)
         
-        if friend_code and group_id:
-            return Response({
-                'success': False,
-                'error': 'Cannot send to both friend and group simultaneously'
-            }, status=status.HTTP_400_BAD_REQUEST)
+#         if friend_code and group_id:
+#             return Response({
+#                 'success': False,
+#                 'error': 'Cannot send to both friend and group simultaneously'
+#             }, status=status.HTTP_400_BAD_REQUEST)
         
-        channel_layer = get_channel_layer()
+#         channel_layer = get_channel_layer()
         
-        try:
-            with transaction.atomic():
-                if friend_code:
-                    # Send to friend
-                    try:
-                        recipient = User.objects.get(friend_code=friend_code)
-                    except User.DoesNotExist:
-                        return Response({
-                            'success': False,
-                            'error': 'User with provided friend_code not found'
-                        }, status=status.HTTP_404_NOT_FOUND)
+#         try:
+#             with transaction.atomic():
+#                 if friend_code:
+#                     # Send to friend
+#                     try:
+#                         recipient = User.objects.get(friend_code=friend_code)
+#                     except User.DoesNotExist:
+#                         return Response({
+#                             'success': False,
+#                             'error': 'User with provided friend_code not found'
+#                         }, status=status.HTTP_404_NOT_FOUND)
                     
-                    # Check if they are friends
-                    friendship_exists = Friendship.objects.filter(
-                        Q(user=request.user, friend=recipient) | 
-                        Q(user=recipient, friend=request.user)
-                    ).exists()
+#                     # Check if they are friends
+#                     friendship_exists = Friendship.objects.filter(
+#                         Q(user=request.user, friend=recipient) | 
+#                         Q(user=recipient, friend=request.user)
+#                     ).exists()
                     
-                    if not friendship_exists:
-                        return Response({
-                            'success': False,
-                            'error': 'You can only send messages to your friends'
-                        }, status=status.HTTP_403_FORBIDDEN)
+#                     if not friendship_exists:
+#                         return Response({
+#                             'success': False,
+#                             'error': 'You can only send messages to your friends'
+#                         }, status=status.HTTP_403_FORBIDDEN)
                     
-                    # Create message in database
-                    message = Message.objects.create(
-                        sender=request.user,
-                        recipient=recipient,
-                        content=content,
-                        emotion=emotion,
-                        show_emotion=show_emotion
-                    )
+#                     # Create message in database
+#                     message = Message.objects.create(
+#                         sender=request.user,
+#                         recipient=recipient,
+#                         content=content,
+#                         emotion=emotion,
+#                         show_emotion=show_emotion
+#                     )
                     
-                    # Prepare message data for WebSocket
-                    message_data = {
-                        'type': 'direct_message',
-                        'message': {
-                            'id': message.id,
-                            'content': message.content,
-                            'timestamp': message.timestamp.isoformat(),
-                            'emotion': message.emotion,
-                            'show_emotion': message.show_emotion,
-                            'sender': {
-                                'id': request.user.id,
-                                'email': request.user.email,
-                                'full_name': request.user.full_name,
-                                'friend_code': request.user.friend_code,
-                                'profile_photo': request.user.profile_photo.url if request.user.profile_photo else None
-                            },
-                            'recipient': {
-                                'id': recipient.id,
-                                'email': recipient.email,
-                                'full_name': recipient.full_name,
-                                'friend_code': recipient.friend_code,
-                                'profile_photo': recipient.profile_photo.url if recipient.profile_photo else None
-                            }
-                        }
-                    }
+#                     # Prepare message data for WebSocket
+#                     message_data = {
+#                         'type': 'direct_message',
+#                         'message': {
+#                             'id': message.id,
+#                             'content': message.content,
+#                             'timestamp': message.timestamp.isoformat(),
+#                             'emotion': message.emotion,
+#                             'show_emotion': message.show_emotion,
+#                             'sender': {
+#                                 'id': request.user.id,
+#                                 'email': request.user.email,
+#                                 'full_name': request.user.full_name,
+#                                 'friend_code': request.user.friend_code,
+#                                 'profile_photo': request.user.profile_photo.url if request.user.profile_photo else None
+#                             },
+#                             'recipient': {
+#                                 'id': recipient.id,
+#                                 'email': recipient.email,
+#                                 'full_name': recipient.full_name,
+#                                 'friend_code': recipient.friend_code,
+#                                 'profile_photo': recipient.profile_photo.url if recipient.profile_photo else None
+#                             }
+#                         }
+#                     }
                     
-                    # Send via WebSocket to recipient
-                    async_to_sync(channel_layer.group_send)(
-                        f"user_{recipient.id}",
-                        {
-                            'type': 'send_message',
-                            'message': json.dumps(message_data)
-                        }
-                    )
+#                     # Send via WebSocket to recipient
+#                     async_to_sync(channel_layer.group_send)(
+#                         f"user_{recipient.id}",
+#                         {
+#                             'type': 'send_message',
+#                             'message': json.dumps(message_data)
+#                         }
+#                     )
                     
-                    # Send confirmation back to sender via WebSocket
-                    async_to_sync(channel_layer.group_send)(
-                        f"user_{request.user.id}",
-                        {
-                            'type': 'message_sent_confirmation',
-                            'message': json.dumps({
-                                'type': 'message_sent',
-                                'message_id': message.id,
-                                'status': 'delivered',
-                                'timestamp': message.timestamp.isoformat()
-                            })
-                        }
-                    )
+#                     # Send confirmation back to sender via WebSocket
+#                     async_to_sync(channel_layer.group_send)(
+#                         f"user_{request.user.id}",
+#                         {
+#                             'type': 'message_sent_confirmation',
+#                             'message': json.dumps({
+#                                 'type': 'message_sent',
+#                                 'message_id': message.id,
+#                                 'status': 'delivered',
+#                                 'timestamp': message.timestamp.isoformat()
+#                             })
+#                         }
+#                     )
                     
-                    response_data = message_data['message']
+#                     response_data = message_data['message']
                     
-                elif group_id:
-                    # Send to group
-                    try:
-                        group = ChatGroup.objects.get(id=group_id)
-                    except ChatGroup.DoesNotExist:
-                        return Response({
-                            'success': False,
-                            'error': 'Group not found'
-                        }, status=status.HTTP_404_NOT_FOUND)
+#                 elif group_id:
+#                     # Send to group
+#                     try:
+#                         group = ChatGroup.objects.get(id=group_id)
+#                     except ChatGroup.DoesNotExist:
+#                         return Response({
+#                             'success': False,
+#                             'error': 'Group not found'
+#                         }, status=status.HTTP_404_NOT_FOUND)
                     
-                    # Check if user is a member of the group
-                    if not group.members.filter(id=request.user.id).exists():
-                        return Response({
-                            'success': False,
-                            'error': 'You are not a member of this group'
-                        }, status=status.HTTP_403_FORBIDDEN)
+#                     # Check if user is a member of the group
+#                     if not group.members.filter(id=request.user.id).exists():
+#                         return Response({
+#                             'success': False,
+#                             'error': 'You are not a member of this group'
+#                         }, status=status.HTTP_403_FORBIDDEN)
                     
-                    # Create message in database
-                    message = Message.objects.create(
-                        sender=request.user,
-                        group=group,
-                        content=content,
-                        emotion=emotion,
-                        show_emotion=show_emotion
-                    )
+#                     # Create message in database
+#                     message = Message.objects.create(
+#                         sender=request.user,
+#                         group=group,
+#                         content=content,
+#                         emotion=emotion,
+#                         show_emotion=show_emotion
+#                     )
                     
-                    # Prepare message data for WebSocket
-                    message_data = {
-                        'type': 'group_message',
-                        'message': {
-                            'id': message.id,
-                            'content': message.content,
-                            'timestamp': message.timestamp.isoformat(),
-                            'emotion': message.emotion,
-                            'show_emotion': message.show_emotion,
-                            'sender': {
-                                'id': request.user.id,
-                                'email': request.user.email,
-                                'full_name': request.user.full_name,
-                                'friend_code': request.user.friend_code,
-                                'profile_photo': request.user.profile_photo.url if request.user.profile_photo else None
-                            },
-                            'group': {
-                                'id': group.id,
-                                'name': group.name,
-                                'is_private': group.is_private
-                            }
-                        }
-                    }
+#                     # Prepare message data for WebSocket
+#                     message_data = {
+#                         'type': 'group_message',
+#                         'message': {
+#                             'id': message.id,
+#                             'content': message.content,
+#                             'timestamp': message.timestamp.isoformat(),
+#                             'emotion': message.emotion,
+#                             'show_emotion': message.show_emotion,
+#                             'sender': {
+#                                 'id': request.user.id,
+#                                 'email': request.user.email,
+#                                 'full_name': request.user.full_name,
+#                                 'friend_code': request.user.friend_code,
+#                                 'profile_photo': request.user.profile_photo.url if request.user.profile_photo else None
+#                             },
+#                             'group': {
+#                                 'id': group.id,
+#                                 'name': group.name,
+#                                 'is_private': group.is_private
+#                             }
+#                         }
+#                     }
                     
-                    # Send via WebSocket to all group members
-                    async_to_sync(channel_layer.group_send)(
-                        f"group_{group.id}",
-                        {
-                            'type': 'send_message',
-                            'message': json.dumps(message_data)
-                        }
-                    )
+#                     # Send via WebSocket to all group members
+#                     async_to_sync(channel_layer.group_send)(
+#                         f"group_{group.id}",
+#                         {
+#                             'type': 'send_message',
+#                             'message': json.dumps(message_data)
+#                         }
+#                     )
                     
-                    response_data = message_data['message']
+#                     response_data = message_data['message']
                 
+#                 return Response({
+#                     'success': True,
+#                     'message': 'Message sent successfully',
+#                     'data': response_data
+#                 }, status=status.HTTP_201_CREATED)
+                
+#         except Exception as e:
+#             return Response({
+#                 'success': False,
+#                 'error': f'Failed to send message: {str(e)}'
+#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+from django.db import transaction
+from django.db.models import Q
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from .models import Message, ChatGroup, Friendship
+from django.contrib.auth import get_user_model
+import json
+
+User = get_user_model()
+
+class SendMessageView(APIView):
+  permission_classes = [IsAuthenticated]
+
+def post(self, request):
+    group_id = request.data.get('group_id')
+    content = request.data.get('content')
+    emotion = request.data.get('emotion')
+    show_emotion = request.data.get('show_emotion', True)
+
+    if not content or not group_id:
+        return Response({
+            'success': False,
+            'error': 'Content and group_id are required.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    channel_layer = get_channel_layer()
+
+    try:
+        with transaction.atomic():
+            group = ChatGroup.objects.get(id=group_id)
+
+            if not group.members.filter(id=request.user.id).exists():
                 return Response({
-                    'success': True,
-                    'message': 'Message sent successfully',
-                    'data': response_data
-                }, status=status.HTTP_201_CREATED)
-                
-        except Exception as e:
+                    'success': False,
+                    'error': 'You are not a member of this group.'
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            message = Message.objects.create(
+                sender=request.user,
+                group=group,
+                content=content,
+                emotion=emotion,
+                show_emotion=show_emotion
+            )
+
+            message_data = {
+                'type': 'group_message',
+                'message': {
+                    'id': message.id,
+                    'content': message.content,
+                    'timestamp': message.timestamp.isoformat(),
+                    'emotion': message.emotion,
+                    'show_emotion': message.show_emotion,
+                    'sender': {
+                        'id': request.user.id,
+                        'email': request.user.email,
+                        'full_name': request.user.full_name,
+                        'friend_code': request.user.friend_code,
+                        'profile_photo': request.user.profile_photo.url if request.user.profile_photo else None
+                    },
+                    'group': {
+                        'id': group.id,
+                        'name': group.name,
+                        'is_private': group.is_private
+                    }
+                }
+            }
+
+            async_to_sync(channel_layer.group_send)(
+                f"group_{group.id}",
+                {
+                    'type': 'send_message',
+                    'message': json.dumps(message_data)
+                }
+            )
+
             return Response({
-                'success': False,
-                'error': f'Failed to send message: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'success': True,
+                'message': 'Message sent successfully',
+                'data': message_data['message']
+            }, status=status.HTTP_201_CREATED)
+
+    except ChatGroup.DoesNotExist:
+        return Response({
+            'success': False,
+            'error': 'Group does not exist'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class JoinedGroupsView(APIView):
     permission_classes = [IsAuthenticated]
