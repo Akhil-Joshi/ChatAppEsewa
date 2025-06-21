@@ -1,5 +1,6 @@
 # Python virtual environment
 venv/
+test2/
 .env
 
 # Bytecode and cache
@@ -11,4 +12,3 @@ __pycache__/
 /staticfiles/
 /media/
 /templates/
-123

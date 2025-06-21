@@ -6,5 +6,6 @@ websocket_urlpatterns = [
     re_path(r'ws/chat/group/$', consumers.ChatConsumer.as_asgi()),
 
     # Private chat with friend_code
-    re_path(r'ws/chat/private/(?P<friend_code>[\w-]+)/$', consumers.PrivateChatConsumer.as_asgi()),
+    # re_path(r'ws/chat/private/(?P<friend_code>[\w-]+)/$', consumers.PrivateChatConsumer.as_asgi()),
+    # re_path(r'ws/chat/private/(?P<friend_code>[\w-]+)/$', consumers.PrivateChatConsumer.as_asgi()),
 ]
