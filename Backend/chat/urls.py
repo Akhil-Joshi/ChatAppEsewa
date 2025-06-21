@@ -5,7 +5,10 @@ from .views import (
     RespondToFriendRequestView, RemoveFriendView, PendingFriendRequestsView,
     FriendRequestHistoryView, FriendshipStatsView, MutualFriendsView,
     # Add these new imports
-    ChatDetailView, SendMessageView, GetMessagesView, GroupMembersView,JoinedGroupsView, AddGroupMembersView
+    #ChatDetailView,  # This is commented out in the original code
+    SendMessageView, GetMessagesView, GroupMembersView,JoinedGroupsView, AddGroupMembersView
+
+
 )
 
 app_name = 'chat'
