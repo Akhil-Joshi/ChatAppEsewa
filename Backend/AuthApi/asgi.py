@@ -9,6 +9,7 @@ from chat.middleware import JWTAuthMiddlewareStack
 import chat.routing
 
 application = ProtocolTypeRouter({
+  "http":django.asgi.application,
     "websocket": JWTAuthMiddlewareStack(
         URLRouter(
             chat.routing.websocket_urlpatterns
