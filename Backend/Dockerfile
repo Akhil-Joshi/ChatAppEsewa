@@ -37,4 +37,4 @@ USER appuser
 EXPOSE 8000
 
 # ✅ Use ASGI with Daphne (replace your_project_name with your Django project folder)
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "Backend.AuthApi.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "${PORT}", "AuthApi.asgi:application"]
