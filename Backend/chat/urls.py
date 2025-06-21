@@ -7,8 +7,6 @@ from .views import (
     # Add these new imports
     #ChatDetailView,  
     SendMessageView, GetMessagesView, GroupMembersView,JoinedGroupsView, AddGroupMembersView
-
-
 )
 
 app_name = 'chat'
@@ -38,7 +36,7 @@ urlpatterns = [
     # Group management
     path('group/create/', CreateGroupView.as_view(), name='create-group'),
     path('groups/', JoinedGroupsView.as_view(), name='joined-groups'),
-    path('group-members/', GroupMembersView.as_view(), name='group-members'),
+    path('group-members/<int:group_id>/', GroupMembersView.as_view(), name='group-members'),
     path('group/add-members/', AddGroupMembersView.as_view(), name='add-group-members'),  # NEW
     
     # Profile and message features
