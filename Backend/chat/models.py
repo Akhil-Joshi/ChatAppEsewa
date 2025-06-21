@@ -30,6 +30,7 @@ class ChatGroup(models.Model):
     def __str__(self):
         return self.name
 
+
 class Message(models.Model):
     sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
     group = models.ForeignKey(ChatGroup, related_name='messages', on_delete=models.CASCADE, null=True, blank=True)

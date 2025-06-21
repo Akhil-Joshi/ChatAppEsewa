@@ -5,7 +5,7 @@ from .views import (
     RespondToFriendRequestView, RemoveFriendView, PendingFriendRequestsView,
     FriendRequestHistoryView, FriendshipStatsView, MutualFriendsView,
     # Add these new imports
-    ChatDetailView, SendMessageView,GetGroupDetailsView, AddGroupMembersView
+    ChatDetailView, SendMessageView, GetMessagesView, GroupMembersView,JoinedGroupsView, AddGroupMembersView
 )
 
 app_name = 'chat'
@@ -26,14 +26,16 @@ urlpatterns = [
     path('chat-history/user/<int:recipient_id>/', ChatHistoryView.as_view(), name='chat-history-user'),
     path('chat-history/group/<int:group_id>/', ChatHistoryView.as_view(), name='chat-history-group'),
     path('mark-read/<int:message_id>/', MarkMessageReadView.as_view(), name='mark-read'),
-    
-    # NEW ENDPOINTS - Add these to your existing urls.py
-    path('chat/detail/', ChatDetailView.as_view(), name='chat-detail'),  # GET with friend_code param
+
+    # Chat detail and message sending
+    # path('detail/', ChatDetailView.as_view(), name='chat-detail'),  # GET with friend_code param
     path('message/send/', SendMessageView.as_view(), name='send-message'),  # POST message
+    path('messages/', GetMessagesView.as_view(), name='get-messages'),
     
     # Group management
     path('group/create/', CreateGroupView.as_view(), name='create-group'),
-    path('groups/<int:group_id>/', GetGroupDetailsView.as_view(), name='get-group-details'),
+    path('groups/', JoinedGroupsView.as_view(), name='joined-groups'),
+    path('group-members/', GroupMembersView.as_view(), name='group-members'),
     path('group/add-members/', AddGroupMembersView.as_view(), name='add-group-members'),  # NEW
     
     # Profile and message features
