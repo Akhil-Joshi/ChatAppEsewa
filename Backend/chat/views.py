@@ -21,7 +21,6 @@ from .models import ChatGroup, Message
 from .serializers import ChatGroupSerializer, UserProfileSerializer
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-# from .ml_model import EmotionDetector  
 
 class UnreadMessagesView(APIView):
     permission_classes = [IsAuthenticated]
@@ -799,7 +798,7 @@ class AddGroupMembersView(APIView):
                         sender=request.user,
                         group=group,
                         content=system_message_content,
-                        emotion='neutral'
+                        show_emotion=False,
                     )
                 
                 return Response({
@@ -934,18 +933,3 @@ class RecentDirectMessagesView(APIView):
                 })
 
         return Response(result)
-
-# # Load model once (globally)
-# emotion_model = EmotionDetector('emotion_detection.pkl')
-
-# class EmotionAnalysisView(APIView):
-#     def post(self, request):
-#         message = request.data.get('message')
-#         if not message:
-#             return Response({"error": "Message field is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         try:
-#             prediction = emotion_model.predict(message)[0]
-#             return Response({"emotion": prediction}, status=status.HTTP_200_OK)
-#         except Exception as e:
-#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

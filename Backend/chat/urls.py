@@ -14,7 +14,7 @@ app_name = 'chat'
 urlpatterns = [
     # Friend management
     path('friends/', FriendListView.as_view(), name='friend-list'),
-    path('friends/send-request/', SendFriendRequestView.as_view(), name='send_friend_request'),
+    path('send-friend-request/', SendFriendRequestView.as_view(), name='send_friend_request'),
     path('friends/pending/', PendingFriendRequestsView.as_view(), name='pending_friend_requests'),
     path('friends/respond/', RespondToFriendRequestView.as_view(), name='respond_friend_request'),
     path('friends/remove/', RemoveFriendView.as_view(), name='remove-friend'),
