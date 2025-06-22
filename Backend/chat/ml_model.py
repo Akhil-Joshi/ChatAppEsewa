@@ -1,19 +1,3 @@
-# import pickle
-# import os
-# from django.conf import settings
-
-# # Absolute path to your pickle file in the project root
-# MODEL_PATH = os.path.join(settings.BASE_DIR, 'emotion_detection.pkl')
-
-# # Load model once when server starts
-# with open(MODEL_PATH, 'rb') as f:
-#     model = pickle.load(f)
-
-# def predict_emotion(message: str):
-#     """Return predicted emotion label for input message."""
-#     return model.predict([message])[0]
-
-
 import os
 import torch
 import torch.nn as nn
