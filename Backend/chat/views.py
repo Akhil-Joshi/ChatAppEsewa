@@ -935,17 +935,17 @@ class RecentDirectMessagesView(APIView):
 
         return Response(result)
 
-# Load model once (globally)
-emotion_model = EmotionDetector('emotion_detection.pkl')
+# # Load model once (globally)
+# emotion_model = EmotionDetector('emotion_detection.pkl')
 
-class EmotionAnalysisView(APIView):
-    def post(self, request):
-        message = request.data.get('message')
-        if not message:
-            return Response({"error": "Message field is required"}, status=status.HTTP_400_BAD_REQUEST)
+# class EmotionAnalysisView(APIView):
+#     def post(self, request):
+#         message = request.data.get('message')
+#         if not message:
+#             return Response({"error": "Message field is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            prediction = emotion_model.predict(message)[0]
-            return Response({"emotion": prediction}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#         try:
+#             prediction = emotion_model.predict(message)[0]
+#             return Response({"emotion": prediction}, status=status.HTTP_200_OK)
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

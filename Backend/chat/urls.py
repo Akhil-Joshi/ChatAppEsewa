@@ -4,7 +4,9 @@ from .views import (
     MarkMessageReadView, CreateGroupView, ProfileUpdateView,
     RespondToFriendRequestView, RemoveFriendView, PendingFriendRequestsView,
     FriendRequestHistoryView, FriendshipStatsView, MutualFriendsView, 
-    SendMessageView, GetMessagesView,RecentDirectMessagesView, GroupMembersView,JoinedGroupsView, AddGroupMembersView,EmotionAnalysisView,  UnreadMessagesView
+    SendMessageView, GetMessagesView,RecentDirectMessagesView, GroupMembersView,JoinedGroupsView, AddGroupMembersView,  UnreadMessagesView,
+    # EmotionAnalysisView,
+
 )
 
 app_name = 'chat'
@@ -20,8 +22,8 @@ urlpatterns = [
     path('friends/stats/', FriendshipStatsView.as_view(), name='friendship_stats'),
     path('friends/mutual/<int:user_id>/', MutualFriendsView.as_view(), name='mutual_friends'),
 
-    # Emotion analysis
-    path('analyze/', EmotionAnalysisView.as_view(), name='emotion-analyze'),
+    # # Emotion analysis
+    # path('analyze/', EmotionAnalysisView.as_view(), name='emotion-analyze'),
     
     # Chat and messaging
     path('unread-messages/', UnreadMessagesView.as_view(), name='unread-messages'),
