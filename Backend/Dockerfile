@@ -41,7 +41,7 @@
 
 
 # Use PyTorch official image (CPU-only) to save space
-FROM pytorch/pytorch:2.2.2-cpu as base
+FROM pytorch/pytorch:2.7.1-cpu as base
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
