@@ -42,3 +42,13 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ['id', 'sender', 'recipient', 'group', 'content', 'timestamp', 'is_read']
+
+
+class SimpleMessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.CharField(source='sender.full_name', read_only=True)
+    sender_id = serializers.IntegerField(source='sender.id', read_only=True)
+    sender_avatar = serializers.ImageField(source='sender.profile_photo', read_only=True, allow_null=True)
+
+    class Meta:
+        model = Message
+        fields = ['id', 'sender_id', 'sender_name', 'sender_avatar', 'content', 'timestamp']

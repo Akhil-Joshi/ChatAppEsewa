@@ -546,87 +546,86 @@ User = get_user_model()
 class SendMessageView(APIView):
   permission_classes = [IsAuthenticated]
 
-def post(self, request):
-    group_id = request.data.get('group_id')
-    content = request.data.get('content')
-    emotion = request.data.get('emotion')
-    show_emotion = request.data.get('show_emotion', True)
+  def post(self, request):
+      group_id = request.data.get('group_id')
+      content = request.data.get('content')
+      emotion = request.data.get('emotion')
+      show_emotion = request.data.get('show_emotion', False)
 
-    if not content or not group_id:
-        return Response({
-            'success': False,
-            'error': 'Content and group_id are required.'
-        }, status=status.HTTP_400_BAD_REQUEST)
+      if not content or not group_id:
+          return Response({
+              'success': False,
+              'error': 'Content and group_id are required.'
+          }, status=status.HTTP_400_BAD_REQUEST)
 
-    channel_layer = get_channel_layer()
+      channel_layer = get_channel_layer()
 
-    try:
-        with transaction.atomic():
-            group = ChatGroup.objects.get(id=group_id)
+      try:
+          with transaction.atomic():
+              group = ChatGroup.objects.get(id=group_id)
 
-            if not group.members.filter(id=request.user.id).exists():
-                return Response({
-                    'success': False,
-                    'error': 'You are not a member of this group.'
-                }, status=status.HTTP_403_FORBIDDEN)
+              if not group.members.filter(id=request.user.id).exists():
+                  return Response({
+                      'success': False,
+                      'error': 'You are not a member of this group.'
+                  }, status=status.HTTP_403_FORBIDDEN)
 
-            message = Message.objects.create(
-                sender=request.user,
-                group=group,
-                content=content,
-                emotion=emotion,
-                show_emotion=show_emotion
-            )
+              message = Message.objects.create(
+                  sender=request.user,
+                  group=group,
+                  content=content,
+                  emotion=emotion,
+                  show_emotion=show_emotion
+              )
 
-            message_data = {
-                'type': 'group_message',
-                'message': {
-                    'id': message.id,
-                    'content': message.content,
-                    'timestamp': message.timestamp.isoformat(),
-                    'emotion': message.emotion,
-                    'show_emotion': message.show_emotion,
-                    'sender': {
-                        'id': request.user.id,
-                        'email': request.user.email,
-                        'full_name': request.user.full_name,
-                        'friend_code': request.user.friend_code,
-                        'profile_photo': request.user.profile_photo.url if request.user.profile_photo else None
-                    },
-                    'group': {
-                        'id': group.id,
-                        'name': group.name,
-                        'is_private': group.is_private
-                    }
-                }
-            }
+              message_data = {
+                  'type': 'group_message',
+                  'message': {
+                      'id': message.id,
+                      'content': message.content,
+                      'timestamp': message.timestamp.isoformat(),
+                      'emotion': message.emotion,
+                      'show_emotion': message.show_emotion,
+                      'sender': {
+                          'id': request.user.id,
+                          'email': request.user.email,
+                          'full_name': request.user.full_name,
+                          'friend_code': request.user.friend_code,
+                          'profile_photo': request.user.profile_photo.url if request.user.profile_photo else None
+                      },
+                      'group': {
+                          'id': group.id,
+                          'name': group.name,
+                          'is_private': group.is_private
+                      }
+                  }
+              }
 
-            async_to_sync(channel_layer.group_send)(
-                f"group_{group.id}",
-                {
-                    'type': 'send_message',
-                    'message': json.dumps(message_data)
-                }
-            )
+              async_to_sync(channel_layer.group_send)(
+                  f"group_{group.id}",
+                  {
+                      'type': 'send_message',
+                      'message': json.dumps(message_data)
+                  }
+              )
 
-            return Response({
-                'success': True,
-                'message': 'Message sent successfully',
-                'data': message_data['message']
-            }, status=status.HTTP_201_CREATED)
+              return Response({
+                  'success': True,
+                  'message': 'Message sent successfully',
+                  'data': message_data['message']
+              }, status=status.HTTP_201_CREATED)
 
-    except ChatGroup.DoesNotExist:
-        return Response({
-            'success': False,
-            'error': 'Group does not exist'
-        }, status=status.HTTP_404_NOT_FOUND)
+      except ChatGroup.DoesNotExist:
+          return Response({
+              'success': False,
+              'error': 'Group does not exist'
+          }, status=status.HTTP_404_NOT_FOUND)
 
-    except Exception as e:
-        return Response({
-            'success': False,
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+      except Exception as e:
+          return Response({
+              'success': False,
+              'error': str(e)
+          }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class JoinedGroupsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -828,6 +827,79 @@ class AddGroupMembersView(APIView):
                 'error': f'Failed to add members: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# class GetMessagesView(APIView):
+#     """Fetch messages between user and a friend or a group"""
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         friend_code = request.query_params.get('friend_code')
+#         group_id = request.query_params.get('group_id')
+
+#         if not friend_code and not group_id:
+#             return Response({
+#                 'success': False,
+#                 'error': 'Either friend_code or group_id is required'
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+#         if friend_code and group_id:
+#             return Response({
+#                 'success': False,
+#                 'error': 'Cannot fetch both friend and group messages simultaneously'
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+#         try:
+#             if friend_code:
+#                 try:
+#                     friend = User.objects.get(friend_code=friend_code)
+#                 except User.DoesNotExist:
+#                     return Response({
+#                         'success': False,
+#                         'error': 'Friend not found'
+#                     }, status=status.HTTP_404_NOT_FOUND)
+
+#                 # Get messages between the user and the friend
+#                 messages = Message.objects.filter(
+#                     Q(sender=request.user, recipient=friend) | 
+#                     Q(sender=friend, recipient=request.user)
+#                 ).order_by('timestamp')
+                
+#                 serializer = MessageSerializer(messages, many=True)
+                
+#                 return Response({
+#                     'success': True,
+#                     'data': serializer.data
+#                 }, status=status.HTTP_200_OK)
+
+#             elif group_id:
+#                 try:
+#                     group = ChatGroup.objects.get(id=group_id)
+#                 except ChatGroup.DoesNotExist:
+#                     return Response({
+#                         'success': False,
+#                         'error': 'Group not found'
+#                     }, status=status.HTTP_404_NOT_FOUND)
+
+#                 # Get messages in the group
+#                 messages = Message.objects.filter(
+#                     group=group
+#                 ).order_by('timestamp')
+                
+#                 serializer = MessageSerializer(messages, many=True)
+                
+#                 return Response({
+#                     'success': True,
+#                     'data': serializer.data
+#                 }, status=status.HTTP_200_OK)
+
+#         except Exception as e:
+#             return Response({
+#                 'success': False,
+#                 'error': str(e)
+#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# views.py
+from .serializers import SimpleMessageSerializer  # import the new serializer
+
 class GetMessagesView(APIView):
     """Fetch messages between user and a friend or a group"""
     permission_classes = [IsAuthenticated]
@@ -858,14 +930,12 @@ class GetMessagesView(APIView):
                         'error': 'Friend not found'
                     }, status=status.HTTP_404_NOT_FOUND)
 
-                # Get messages between the user and the friend
                 messages = Message.objects.filter(
                     Q(sender=request.user, recipient=friend) | 
                     Q(sender=friend, recipient=request.user)
                 ).order_by('timestamp')
-                
-                serializer = MessageSerializer(messages, many=True)
-                
+
+                serializer = SimpleMessageSerializer(messages, many=True)
                 return Response({
                     'success': True,
                     'data': serializer.data
@@ -880,13 +950,11 @@ class GetMessagesView(APIView):
                         'error': 'Group not found'
                     }, status=status.HTTP_404_NOT_FOUND)
 
-                # Get messages in the group
                 messages = Message.objects.filter(
                     group=group
                 ).order_by('timestamp')
-                
-                serializer = MessageSerializer(messages, many=True)
-                
+
+                serializer = SimpleMessageSerializer(messages, many=True)
                 return Response({
                     'success': True,
                     'data': serializer.data
@@ -897,6 +965,7 @@ class GetMessagesView(APIView):
                 'success': False,
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class RecentDirectMessagesView(APIView):
     permission_classes = [IsAuthenticated]
