@@ -1,5 +1,3 @@
-# main_project/urls.py
-
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
@@ -9,4 +7,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('core.urls')),
     path('api/chat/', include('chat.urls')),
+    path('api/emotion/', include('chat.urls')),
+
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

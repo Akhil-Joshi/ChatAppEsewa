@@ -38,8 +38,6 @@ class Message(models.Model):
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
-    emotion = models.CharField(max_length=50, null=True, blank=True)  # Detected emotion
-    show_emotion = models.BooleanField(default=True)  # Toggle for emotion display
 
     class Meta:
         ordering = ['timestamp']

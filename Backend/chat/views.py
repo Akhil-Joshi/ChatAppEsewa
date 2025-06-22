@@ -21,6 +21,7 @@ from .models import ChatGroup, Message
 from .serializers import ChatGroupSerializer, UserProfileSerializer
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from .ml_model import EmotionDetector  
 
 class UnreadMessagesView(APIView):
     permission_classes = [IsAuthenticated]
@@ -934,98 +935,17 @@ class RecentDirectMessagesView(APIView):
 
         return Response(result)
 
+# Load model once (globally)
+emotion_model = EmotionDetector('emotion_detection.pkl')
 
-# Add these views to your existing views.py file
+class EmotionAnalysisView(APIView):
+    def post(self, request):
+        message = request.data.get('message')
+        if not message:
+            return Response({"error": "Message field is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-
-# class ChatDetailView(APIView):
-#     """Get detailed chat messages between two users using friend_code"""
-#     permission_classes = [IsAuthenticated]
-    
-#     def get(self, request):
-#         friend_code = request.query_params.get('friend_code')
-#         page = int(request.query_params.get('page', 1))
-#         page_size = int(request.query_params.get('page_size', 50))
-        
-#         if not friend_code:
-#             return Response({
-#                 'success': False,
-#                 'error': 'friend_code is required'
-#             }, status=status.HTTP_400_BAD_REQUEST)
-        
-#         try:
-#             friend = User.objects.get(friend_code=friend_code)
-#         except User.DoesNotExist:
-#             return Response({
-#                 'success': False,
-#                 'error': 'User with provided friend_code not found'
-#             }, status=status.HTTP_404_NOT_FOUND)
-        
-#         # Check if they are friends
-#         friendship_exists = Friendship.objects.filter(
-#             Q(user=request.user, friend=friend) | Q(user=friend, friend=request.user)
-#         ).exists()
-        
-#         if not friendship_exists:
-#             return Response({
-#                 'success': False,
-#                 'error': 'You can only view messages with your friends'
-#             }, status=status.HTTP_403_FORBIDDEN)
-        
-#         # Get messages between the two users
-#         messages = Message.objects.filter(
-#             Q(sender=request.user, recipient=friend) | 
-#             Q(sender=friend, recipient=request.user)
-#         ).select_related('sender', 'recipient').order_by('-timestamp')
-        
-#         # Pagination
-#         start = (page - 1) * page_size
-#         end = start + page_size
-#         paginated_messages = messages[start:end]
-        
-#         # Serialize messages with detailed info
-#         messages_data = []
-#         for message in paginated_messages:
-#             messages_data.append({
-#                 'id': message.id,
-#                 'content': message.content,
-#                 'timestamp': message.timestamp,
-#                 'is_read': message.is_read,
-#                 'emotion': message.emotion,
-#                 'show_emotion': message.show_emotion,
-#                 'sender': {
-#                     'id': message.sender.id,
-#                     'email': message.sender.email,
-#                     'full_name': message.sender.full_name,
-#                     'friend_code': message.sender.friend_code,
-#                     'profile_photo': message.sender.profile_photo.url if message.sender.profile_photo else None
-#                 },
-#                 'recipient': {
-#                     'id': message.recipient.id,
-#                     'email': message.recipient.email,
-#                     'full_name': message.recipient.full_name,
-#                     'friend_code': message.recipient.friend_code,
-#                     'profile_photo': message.recipient.profile_photo.url if message.recipient.profile_photo else None
-#                 } if message.recipient else None
-#             })
-        
-#         return Response({
-#             'success': True,
-#             'data': {
-#                 'messages': messages_data,
-#                 'pagination': {
-#                     'current_page': page,
-#                     'page_size': page_size,
-#                     'total_messages': messages.count(),
-#                     'has_next': messages.count() > end,
-#                     'has_previous': page > 1
-#                 },
-#                 'chat_partner': {
-#                     'id': friend.id,
-#                     'email': friend.email,
-#                     'full_name': friend.full_name,
-#                     'friend_code': friend.friend_code,
-#                     'profile_photo': friend.profile_photo.url if friend.profile_photo else None
-#                 }
-#             }
-#         }, status=status.HTTP_200_OK)
+        try:
+            prediction = emotion_model.predict(message)[0]
+            return Response({"emotion": prediction}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

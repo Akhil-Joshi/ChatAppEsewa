@@ -11,7 +11,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '.railway.app',  # For Railway domain
+    '.railway.app', 
 ]
 
 INSTALLED_APPS = [
@@ -75,16 +75,6 @@ CHANNEL_LAYERS = {
         },
     },
 }
-
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#           # "hosts": [("127.0.0.1", 6379)],
-#           "hosts": [("redis.railway.internal", 6379)],
-#         },
-#     },
-# }
 
 
 WSGI_APPLICATION = 'AuthApi.wsgi.application'
