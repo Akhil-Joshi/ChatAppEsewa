@@ -883,7 +883,7 @@ class GetMessagesView(APIView):
                 # Get messages in the group
                 messages = Message.objects.filter(
                     group=group
-                ).order_by('-timestamp')
+                ).order_by('timestamp')
                 
                 serializer = MessageSerializer(messages, many=True)
                 
@@ -924,7 +924,7 @@ class RecentDirectMessagesView(APIView):
             last_message = Message.objects.filter(
                 Q(sender=user, recipient=friend) |
                 Q(sender=friend, recipient=user)
-            ).order_by('-timestamp').first()
+            ).order_by('timestamp').first()
 
             if last_message:
                 result.append({
