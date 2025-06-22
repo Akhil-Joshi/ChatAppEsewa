@@ -21,7 +21,7 @@ from .models import ChatGroup, Message
 from .serializers import ChatGroupSerializer, UserProfileSerializer
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from .ml_model import EmotionDetector  
+# from .ml_model import EmotionDetector  
 
 class UnreadMessagesView(APIView):
     permission_classes = [IsAuthenticated]
