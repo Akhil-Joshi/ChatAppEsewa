@@ -862,7 +862,7 @@ class GetMessagesView(APIView):
                 messages = Message.objects.filter(
                     Q(sender=request.user, recipient=friend) | 
                     Q(sender=friend, recipient=request.user)
-                ).order_by('-timestamp')
+                ).order_by('timestamp')
                 
                 serializer = MessageSerializer(messages, many=True)
                 
