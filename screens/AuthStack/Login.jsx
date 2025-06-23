@@ -64,68 +64,68 @@ export default function Login({ navigation, route }) {
     ]).start();
   }, []);
 
-const handleLogin = async () => {
-  if (!email || !password) {
-    Alert.alert('Error', 'Please fill in all fields');
-    return;
-  }
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
 
-  // Button press animation
-  Animated.sequence([
-    Animated.timing(buttonScaleAnim, {
-      toValue: 0.95,
-      duration: 100,
-      useNativeDriver: true,
-    }),
-    Animated.timing(buttonScaleAnim, {
-      toValue: 1,
-      duration: 100,
-      useNativeDriver: true,
-    }),
-  ]).start();
+    // Button press animation
+    Animated.sequence([
+      Animated.timing(buttonScaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
-  setIsLoading(true);
+    setIsLoading(true);
 
-  try {
-    const payload = {
-      email: email,
-      password: password
-    };
-    const response = await login(payload);
+    try {
+      const payload = {
+        email: email,
+        password: password
+      };
+      const response = await login(payload);
 
-    const { user, tokens } = response.data;
+      const { user, tokens } = response.data;
 
-    // Store data in AsyncStorage
-    await AsyncStorage.multiSet([
-      ['@user_id', user.id.toString()],
-      ['@email', user.email],
-      ['@full_name', user.full_name],
-      ['@access_token', tokens.access],
-      ['@refresh_token', tokens.refresh],
-    ]);
+      // Store data in AsyncStorage
+      await AsyncStorage.multiSet([
+        ['@user_id', user.id.toString()],
+        ['@email', user.email],
+        ['@full_name', user.full_name],
+        ['@access_token', tokens.access],
+        ['@refresh_token', tokens.refresh],
+      ]);
 
-const values = await AsyncStorage.multiGet([
-  '@user_id',
-  '@email',
-  '@full_name',
-  '@access_token',
-  '@refresh_token',
-]);
+      const values = await AsyncStorage.multiGet([
+        '@user_id',
+        '@email',
+        '@full_name',
+        '@access_token',
+        '@refresh_token',
+      ]);
 
-console.log('Stored values in async storage...:', values);
+      console.log('Stored values in async storage...:', values);
 
-    // Update the AuthContext state
-    await authLogin(tokens.access);
+      // Update the AuthContext state
+      await authLogin(tokens.access);
 
-    setIsLoading(false);
-    // navigation.navigate('Main');
-  } catch (error) {
-    setIsLoading(false);
-    // Handle error
-    console.log(error, "Error occurred");
-    Alert.alert('Error', 'Something went wrong. Please try again later!');
-  }
-};
+      setIsLoading(false);
+      // navigation.navigate('Main');
+    } catch (error) {
+      setIsLoading(false);
+      // Handle error
+      console.log(error, "Error occurred");
+      Alert.alert('Error', 'Something went wrong. Please try again later!');
+    }
+  };
 
   const handleForgotPassword = () => {
     navigation.navigate('ForgotPassword');

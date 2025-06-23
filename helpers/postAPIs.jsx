@@ -114,5 +114,54 @@ export const handleFriendRequest = async (token, friend_code, userData) => {
   }
 };
 
+// create group
+export const createGroup = async (token, userData) => {
+  try {
+      const response = await axios.post(`${BASE_URL}chat/group/create/`, userData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('API error:', error);
+    throw error.response?.data || { message: 'Network error or server not responding' };
+  }
+};
+
+
+// Add Group Members
+export const addGroupMembers = async (token, userData) => {
+  try {
+    const response = await axios.post(`${BASE_URL}chat/group/add-members/`, userData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('API error:', error);
+    throw error.response?.data || { message: 'Network error or server not responding' };
+  }
+};
+
+// Chat Api
+export const directChatApi = async (token, userData) => {
+  try {
+    const response = await axios.post(`${BASE_URL}chat/message/send/`, userData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('API error:', error);
+    throw error.response?.data || { message: 'Network error or server not responding' };
+  }
+};
+
 
 

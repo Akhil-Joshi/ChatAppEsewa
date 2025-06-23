@@ -15,6 +15,7 @@
     "@react-navigation/stack": "^7.3.2",
     "axios": "^1.9.0",
     "expo": "^52.0.46",
+    "expo-dev-client": "~5.0.20",
     "expo-linear-gradient": "~14.0.2",
     "expo-modules-core": "~2.2.3",
     "expo-navigation-bar": "4.0.9",

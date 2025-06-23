@@ -1,6 +1,6 @@
 // screens/HomeScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Image, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Image, Alert, Modal, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,7 +8,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { TextInput } from 'react-native-gesture-handler';
 import { useAuth } from '../../contexts/AuthContext';
 import { sendFriendRequest, handleFriendRequest } from '../../helpers/postAPIs';
-import { getFriendRequests, getFriends } from '../../helpers/getAPIs';
+import { getFriendRequests, getFriends, getAllGroups } from '../../helpers/getAPIs';
 
 const HomeScreen = ({ navigation }) => {
   const { colors, theme, toggleTheme } = useTheme();
@@ -20,9 +20,11 @@ const HomeScreen = ({ navigation }) => {
   const [friendCode, setFriendCode] = useState('');
   const [friendRequests, setFriendRequests] = useState([]);
   const [token, setToken] = useState(null);
-  const [activeTab, setActiveTab] = useState('direct');
+  const [activeTab, setActiveTab] = useState('group');
   const [modalActiveTab, setModalActiveTab] = useState('add');
   const [friends, setFriends] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -43,27 +45,43 @@ const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     const fetchFriends = async () => {
       if (!token) return;
-      
+
       try {
         const response = await getFriends(token);
         console.log(response, " friends hehehehehhehehe");
-  
+
         const mappedFriends = response?.data?.map((friend) => ({
           id: friend.id,
           name: friend.full_name,
           code: friend.friend_code,
           email: friend.email,
           profile_photo: friend.profile_photo,
+          friend_code: friend.friend_code
         }));
-  
+
         setFriends(mappedFriends);
       } catch (error) {
         console.error('Failed to fetch friends:', error);
       }
     };
-  
+
     fetchFriends();
-  }, [token]); 
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      fetchAllGroups();
+    }
+  }, [token]);
+
+  // Get all groups
+  const fetchAllGroups = async () => {
+    const response = await getAllGroups(token);
+    console.log(response, " all groups");
+    // Extract joined_groups from response and map to expected format
+    const groupsData = response.joined_groups || [];
+    setGroups(groupsData);
+  }
 
   useEffect(() => {
     if (modalActiveTab === 'requests') {
@@ -88,6 +106,21 @@ const HomeScreen = ({ navigation }) => {
     }
   }
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Refresh friends list
+      if (token) {
+        fetchAllGroups();
+        fetchFriendRequests();
+      }
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleAcceptFriendRequest = async (friend_code) => {
     try {
       const response = await handleFriendRequest(token, friend_code, { action: 'accept' });
@@ -101,7 +134,6 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-
   const handleRejectFriendRequest = async (friend_code) => {
     try {
       const response = await handleFriendRequest(token, friend_code, { action: 'reject' });
@@ -114,8 +146,6 @@ const HomeScreen = ({ navigation }) => {
       Alert.alert('Error', 'Failed to reject friend request.');
     }
   };
-
-
 
   const handleAddFriend = () => {
     setIsAddFriendModalVisible(true);
@@ -153,10 +183,8 @@ const HomeScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Friend request error:', error);
       Alert.alert('Error', error.error);
-
     }
   };
-
 
   const handleProfilePress = () => {
     // Navigate to profile screen or show profile options
@@ -189,20 +217,8 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
-  const directContacts = [
-    { id: '1', name: 'Phillip Franci', avatar: 'https://i.pravatar.cc/150?img=1', lastMessage: 'Hey, it\'s been a while since we\'ve...', time: '10:00 am', read: false },
-    { id: '2', name: 'Alfredo Saris', avatar: 'https://i.pravatar.cc/150?img=2', lastMessage: 'Hello, Good Morning Bro!', time: '09:00 am', read: false },
-    { id: '3', name: 'Jaylon Franci', avatar: 'https://i.pravatar.cc/150?img=3', lastMessage: 'Everything\'s good.', time: '08:30 am', read: true },
-    { id: '4', name: 'Tatiana Dorwart', avatar: 'https://i.pravatar.cc/150?img=4', lastMessage: 'Okay! Thanks!', time: '08:10 am', read: true },
-    { id: '5', name: 'Terry Bergson', avatar: 'https://i.pravatar.cc/150?img=5', lastMessage: 'Sure thing!', time: '07:45 am', read: true },
-  ];
-
-  const groupChats = [
-    { id: '6', name: 'Design Team', avatar: 'https://i.pravatar.cc/150?img=6', lastMessage: 'Let\'s finalize the mockups today', time: '11:30 am', read: false, isGroup: true, memberCount: 8 },
-    { id: '7', name: 'College Friends', avatar: 'https://i.pravatar.cc/150?img=7', lastMessage: 'Anyone up for the reunion?', time: '09:45 am', read: false, isGroup: true, memberCount: 12 },
-    { id: '8', name: 'Family Group', avatar: 'https://i.pravatar.cc/150?img=8', lastMessage: 'Mom: Dinner at 7 PM', time: '08:15 am', read: true, isGroup: true, memberCount: 6 },
-    { id: '9', name: 'Work Project', avatar: 'https://i.pravatar.cc/150?img=9', lastMessage: 'Meeting postponed to tomorrow', time: '07:30 am', read: true, isGroup: true, memberCount: 5 },
-  ];
+  const directContacts = friends || [];
+  const groupChats = groups || [];
 
   const getCurrentData = () => {
     return activeTab === 'direct' ? directContacts : groupChats;
@@ -215,6 +231,209 @@ const HomeScreen = ({ navigation }) => {
       : `Group Chats(${data.length})`;
   };
 
+  const formatTime = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      return 'Today';
+    } else if (diffDays === 2) {
+      return 'Yesterday';
+    } else if (diffDays <= 7) {
+      return `${diffDays - 1} days ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
+  const renderGroupItem = ({ item }) => {
+    const formatTime = (dateString) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffTime = Math.abs(now - date);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+      if (diffDays === 1) {
+        return 'Today';
+      } else if (diffDays === 2) {
+        return 'Yesterday';
+      } else if (diffDays <= 7) {
+        return `${diffDays - 1} days ago`;
+      } else {
+        return date.toLocaleDateString();
+      }
+    };
+  
+    // Parse and extract message content using the same logic as your chat messages
+    const parseMessageContent = (recentMessage) => {
+      if (!recentMessage) {
+        return {
+          content: 'No messages yet',
+          senderName: '',
+          timestamp: null
+        };
+      }
+  
+      let messageContent, senderName, timestamp;
+  
+      try {
+        // Handle the specific response format from your API
+        if (recentMessage.content && typeof recentMessage.content === 'string') {
+          try {
+            // Convert single quotes to double quotes for proper JSON parsing
+            const jsonString = recentMessage.content.replace(/'/g, '"').replace(/None/g, 'null');
+            const parsedContent = JSON.parse(jsonString);
+            
+            // Extract message data from parsed content
+            messageContent = parsedContent.content;
+            senderName = parsedContent.sender_name;
+            timestamp = parsedContent.timestamp;
+            
+          } catch (parseError) {
+            // Check if it's a system message or plain text
+            if (!recentMessage.content.includes('{') && !recentMessage.content.includes('}')) {
+              messageContent = recentMessage.content;
+              senderName = recentMessage.sender_name;
+              timestamp = recentMessage.timestamp;
+            } else {
+              // If it's malformed JSON, use fallback
+              console.warn('Failed to parse recent message content:', recentMessage.content);
+              messageContent = recentMessage.content;
+              senderName = recentMessage.sender_name;
+              timestamp = recentMessage.timestamp;
+            }
+          }
+        } else if (recentMessage.content && typeof recentMessage.content === 'object') {
+          // If content is already an object
+          messageContent = recentMessage.content.content || recentMessage.content;
+          senderName = recentMessage.content.sender_name || recentMessage.sender_name;
+          timestamp = recentMessage.content.timestamp || recentMessage.timestamp;
+        } else {
+          // Fallback for other formats
+          messageContent = recentMessage.message?.content || recentMessage.content || recentMessage.message;
+          senderName = recentMessage.sender_name || recentMessage.message?.sender_name || 'Someone';
+          timestamp = recentMessage.timestamp || recentMessage.created_at || recentMessage.message?.timestamp;
+        }
+  
+        // Handle system messages (like "Gamer added Akhil Joshi to the group")
+        const isSystemMessage = messageContent && !messageContent.includes('{') && 
+                               (messageContent.includes('added') || 
+                                messageContent.includes('removed') || 
+                                messageContent.includes('joined') || 
+                                messageContent.includes('left'));
+  
+        if (isSystemMessage) {
+          return {
+            content: messageContent,
+            senderName: '',
+            timestamp: timestamp,
+            isSystemMessage: true
+          };
+        }
+  
+        // Validate that we have the essential data
+        if (!messageContent || messageContent.trim() === '') {
+          return {
+            content: 'Message content unavailable',
+            senderName: senderName || 'Unknown',
+            timestamp: timestamp
+          };
+        }
+  
+        return {
+          content: messageContent,
+          senderName: senderName || 'Someone',
+          timestamp: timestamp
+        };
+  
+      } catch (error) {
+        console.error('Error parsing recent message:', error, recentMessage);
+        return {
+          content: 'Error loading message',
+          senderName: 'Unknown',
+          timestamp: recentMessage.timestamp || recentMessage.created_at
+        };
+      }
+    };
+  
+    // Get the display timestamp
+    const getDisplayTime = () => {
+      if (item.recent_message) {
+        const parsed = parseMessageContent(item.recent_message);
+        return parsed.timestamp || item.recent_message.created_at || item.recent_message.timestamp || item.created_at;
+      }
+      return item.created_at;
+    };
+  
+    // Get the message display text
+    const getMessageDisplay = () => {
+      if (!item.recent_message) {
+        return 'No messages yet';
+      }
+  
+      const parsed = parseMessageContent(item.recent_message);
+      
+      if (parsed.isSystemMessage) {
+        return parsed.content;
+      }
+  
+      if (parsed.senderName && parsed.content) {
+        return `${parsed.senderName}: ${parsed.content}`;
+      }
+  
+      return parsed.content || 'No messages yet';
+    };
+  
+    return (
+      <TouchableOpacity
+        style={styles.messageItem}
+        onPress={() => navigation.navigate('GroupChatScreen', {
+          id: item.id,
+          name: item.name,
+          avatar: item.avatar,
+          isGroup: true,
+        })}
+      >
+        <View style={styles.messageAvatar}>
+          {item.avatar ? (
+            <Image
+              source={{ uri: item.avatar }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <Icon name="people" size={24} color="#fff" />
+            </View>
+          )}
+          <View style={styles.groupIndicator}>
+            <Icon name="people" size={12} color="#fff" />
+          </View>
+        </View>
+        
+        <View style={styles.messageContent}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={styles.messageName}>
+              {item.name}
+              {/* <Text style={styles.memberCount}> ({item.memberCount || 0})</Text> */}
+            </Text>
+            <Text style={styles.messageTime}>
+              {formatTime(getDisplayTime())}
+            </Text>
+          </View>
+          
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.messageText} numberOfLines={1}>
+              {getMessageDisplay()}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -558,13 +777,7 @@ const HomeScreen = ({ navigation }) => {
       shadowRadius: 20,
       elevation: 15,
     },
-    modalTitle: {
-      fontSize: 24,
-      fontWeight: '700',
-      marginBottom: 25,
-      textAlign: 'center',
-      letterSpacing: 0.5,
-    },
+
     modalTabContainer: {
       flexDirection: 'row',
       backgroundColor: colors.background,
@@ -714,11 +927,11 @@ const HomeScreen = ({ navigation }) => {
   const renderAvatarItem = ({ item }) => (
     <TouchableOpacity
       style={styles.avatarContainer}
-      onPress={() => navigation.navigate('Chat', { id: item.id, name: item.name, avatar: item.profile_photo })}
+      onPress={() => navigation.navigate('Chat', { id: item.id, name: item.name, avatar: item.profile_photo, friend_code: item.friend_code })}
     >
       {item.profile_photo ? (
-        <Image 
-          source={{ uri: item.profile_photo }} 
+        <Image
+          source={{ uri: item.profile_photo }}
           style={styles.avatar}
           onError={() => {
             // If image fails to load, show fallback
@@ -734,20 +947,24 @@ const HomeScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const renderMessageItem = ({ item }) => (
+  const renderMessageItem = ({ item }) => {
+    if (activeTab === 'group') {
+      return renderGroupItem({ item });
+    } else {
     <TouchableOpacity
       style={styles.messageItem}
       onPress={() => navigation.navigate('Chat', {
         id: item.id,
         name: item.name,
         avatar: item.profile_photo,
-        isGroup: item.isGroup || false
+        isGroup: item.isGroup || false,
+        friend_code: item.friend_code
       })}
     >
       <View style={styles.messageAvatar}>
         {item.profile_photo ? (
-          <Image 
-            source={{ uri: item.profile_photo }} 
+          <Image
+            source={{ uri: item.profile_photo }}
             style={styles.avatar}
             onError={() => {
               // If image fails to load, show fallback
@@ -790,11 +1007,25 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </View>
     </TouchableOpacity>
-  );
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.mainContainer}>
+      <View style={styles.mainContainer} refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+          progressBackgroundColor={colors.background}
+          style={{
+            zIndex: 1000,
+            backgroundColor: colors.primary,
+          }}
+          scrollEnabled={false}
+        />
+      }>
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View style={styles.headerLeft}>
@@ -895,152 +1126,165 @@ const HomeScreen = ({ navigation }) => {
             renderItem={renderMessageItem}
             keyExtractor={item => item.id}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+                progressBackgroundColor={colors.background}
+                style={{
+                  zIndex: 1000,
+                  backgroundColor: colors.primary,
+                }}
+                scrollEnabled={false}
+              />
+            }
           />
         </View>
-        {/* add friend icon */}
-        <TouchableOpacity style={styles.fab} onPress={handleAddFriend}>
-          <Icon name="person-add" size={25} color={colors.text} style={{ justifyContent: 'center', alignItems: 'center', }} />
-        </TouchableOpacity>
+      </View>
+      {/* add friend icon */}
+      <TouchableOpacity style={styles.fab} onPress={handleAddFriend}>
+        <Icon name="person-add" size={25} color={colors.text} style={{ justifyContent: 'center', alignItems: 'center', }} />
+      </TouchableOpacity>
 
-        {/* Add Friend Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={isAddFriendModalVisible}
-          onRequestClose={() => setIsAddFriendModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Friends</Text>
+      {/* Add Friend Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isAddFriendModalVisible}
+        onRequestClose={() => setIsAddFriendModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
 
-              {/* Tab Navigation */}
-              <View style={styles.modalTabContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.modalTab,
-                    modalActiveTab === 'add' ? styles.modalActiveTab : styles.modalInactiveTab
-                  ]}
-                  onPress={() => setModalActiveTab('add')}
-                >
-                  <Text style={[
-                    styles.modalTabText,
-                    modalActiveTab === 'add' ? styles.modalActiveTabText : styles.modalInactiveTabText
-                  ]}>
-                    Add Friend
-                  </Text>
-                </TouchableOpacity>
+            {/* Tab Navigation */}
+            <View style={styles.modalTabContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.modalTab,
+                  modalActiveTab === 'add' ? styles.modalActiveTab : styles.modalInactiveTab
+                ]}
+                onPress={() => setModalActiveTab('add')}
+              >
+                <Text style={[
+                  styles.modalTabText,
+                  modalActiveTab === 'add' ? styles.modalActiveTabText : styles.modalInactiveTabText
+                ]}>
+                  Add Friend
+                </Text>
+              </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[
-                    styles.modalTab,
-                    modalActiveTab === 'requests' ? styles.modalActiveTab : styles.modalInactiveTab
-                  ]}
-                  onPress={() => setModalActiveTab('requests')}
-                >
-                  <Text style={[
-                    styles.modalTabText,
-                    modalActiveTab === 'requests' ? styles.modalActiveTabText : styles.modalInactiveTabText
-                  ]}>
-                    Requests
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={[
+                  styles.modalTab,
+                  modalActiveTab === 'requests' ? styles.modalActiveTab : styles.modalInactiveTab
+                ]}
+                onPress={() => setModalActiveTab('requests')}
+              >
+                <Text style={[
+                  styles.modalTabText,
+                  modalActiveTab === 'requests' ? styles.modalActiveTabText : styles.modalInactiveTabText
+                ]}>
+                  Requests
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-              {/* Tab Content */}
-              <View style={styles.tabContent}>
-                {modalActiveTab === 'add' ? (
-                  // Add Friend Tab
-                  <View>
-                    <TextInput
-                      style={[styles.modalInput, {
-                        backgroundColor: colors.background,
-                        color: colors.text,
-                        borderColor: colors.border
-                      }]}
-                      placeholder="Enter friend code"
-                      placeholderTextColor={colors.text + '80'}
-                      value={friendCode}
-                      onChangeText={setFriendCode}
-                      autoCapitalize="none"
-                    />
-                    <View style={styles.modalButtons}>
-                      <TouchableOpacity
-                        style={[styles.modalButton, styles.cancelButton]}
-                        onPress={() => {
-                          setFriendCode('');
-                          setIsAddFriendModalVisible(false);
-                        }}
-                      >
-                        <Text style={styles.buttonText}>Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.modalButton, styles.submitButton]}
-                        onPress={handleSubmitFriendCode}
-                      >
-                        <Text style={styles.buttonText}>Add Friend</Text>
-                      </TouchableOpacity>
-                    </View>
+            {/* Tab Content */}
+            <View style={styles.tabContent}>
+              {modalActiveTab === 'add' ? (
+                // Add Friend Tab
+                <View>
+                  <TextInput
+                    style={[styles.modalInput, {
+                      backgroundColor: colors.background,
+                      color: colors.text,
+                      borderColor: colors.border
+                    }]}
+                    placeholder="Enter friend code"
+                    placeholderTextColor={colors.text + '80'}
+                    value={friendCode}
+                    onChangeText={setFriendCode}
+                    autoCapitalize="none"
+                  />
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setFriendCode('');
+                        setIsAddFriendModalVisible(false);
+                      }}
+                    >
+                      <Text style={styles.buttonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.submitButton]}
+                      onPress={handleSubmitFriendCode}
+                    >
+                      <Text style={styles.buttonText}>Add Friend</Text>
+                    </TouchableOpacity>
                   </View>
-                ) : (
-                  // Friend Requests Tab
-                  <View style={{ flex: 1 }}>
-                    <ScrollView style={styles.requestsList}>
-                      {friendRequests.length === 0 ? (
-                        <Text style={[styles.emptyText, { color: colors.text + '80', textAlign: 'center', marginTop: 20 }]}>
-                          No friend requests
-                        </Text>
-                      ) : (
-                        friendRequests.map((request) => (
-                          <View
-                            key={request.id}
-                            style={[styles.requestItem, { backgroundColor: colors.card || colors.background }]}
-                          >
-                            {/* Request Info */}
-                            <View style={styles.requestInfo}>
-                              <Text style={[styles.requestName, { color: colors.text }]}>
-                                {request.name}
-                              </Text>
-                              <Text style={[styles.requestCode, { color: colors.text + '80' }]}>
-                                Code: {request.code}
-                              </Text>
-                            </View>
-
-                            {/* Action Buttons */}
-                            <View style={styles.requestActions}>
-                              <TouchableOpacity
-                                style={[styles.actionButton, styles.acceptButton]}
-                                onPress={() => handleAcceptFriendRequest(request.code)}
-                              >
-                                <Icon name="checkmark" size={20} color={colors.text} />
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                style={[styles.actionButton, styles.declineButton]}
-                                onPress={() => handleRejectFriendRequest(request.code)}
-                              >
-                                <Icon name="close" size={20} color={colors.text} />
-                              </TouchableOpacity>
-                            </View>
+                </View>
+              ) : (
+                // Friend Requests Tab
+                <View style={{ flex: 1 }}>
+                  <ScrollView style={styles.requestsList}>
+                    {friendRequests.length === 0 ? (
+                      <Text style={[styles.emptyText, { color: colors.text + '80', textAlign: 'center', marginTop: 20 }]}>
+                        No friend requests
+                      </Text>
+                    ) : (
+                      friendRequests.map((request) => (
+                        <View
+                          key={request.id}
+                          style={[styles.requestItem, { backgroundColor: colors.card || colors.background }]}
+                        >
+                          {/* Request Info */}
+                          <View style={styles.requestInfo}>
+                            <Text style={[styles.requestName, { color: colors.text }]}>
+                              {request.name}
+                            </Text>
+                            <Text style={[styles.requestCode, { color: colors.text + '80' }]}>
+                              Code: {request.code}
+                            </Text>
                           </View>
-                        ))
-                      )}
-                    </ScrollView>
 
-                    {/* Close Button */}
-                    <View style={styles.modalButtons}>
-                      <TouchableOpacity
-                        style={[styles.modalButton, styles.cancelButton]}
-                        onPress={() => setIsAddFriendModalVisible(false)}
-                      >
-                        <Text style={styles.buttonText}>Close</Text>
-                      </TouchableOpacity>
-                    </View>
+                          {/* Action Buttons */}
+                          <View style={styles.requestActions}>
+                            <TouchableOpacity
+                              style={[styles.actionButton, styles.acceptButton]}
+                              onPress={() => handleAcceptFriendRequest(request.code)}
+                            >
+                              <Icon name="checkmark" size={20} color={colors.text} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.actionButton, styles.declineButton]}
+                              onPress={() => handleRejectFriendRequest(request.code)}
+                            >
+                              <Icon name="close" size={20} color={colors.text} />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))
+                    )}
+                  </ScrollView>
+
+                  {/* Close Button */}
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => setIsAddFriendModalVisible(false)}
+                    >
+                      <Text style={styles.buttonText}>Close</Text>
+                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
+                </View>
+              )}
             </View>
           </View>
-        </Modal>
-      </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

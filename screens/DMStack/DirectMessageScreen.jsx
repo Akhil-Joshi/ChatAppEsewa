@@ -1,9 +1,11 @@
 // screens/DirectMessageScreen.js
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput, Dimensions } from 'react-native';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput, Dimensions, Modal, RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../../contexts/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getFriends } from '../../helpers/getAPIs';
 
 const { width, height } = Dimensions.get('window');
 
@@ -11,81 +13,78 @@ const DirectMessageScreen = ({ navigation }) => {
   const { colors, theme } = useTheme();
   const isDarkMode = theme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const [showFriendModal, setShowFriendModal] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [token, setToken] = useState(null);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const contacts = [
-    {
-      id: '1',
-      name: 'Phillip Franci',
-      avatar: 'https://i.pravatar.cc/150?img=1',
-      lastMessage: 'Hey, it\'s been a while since we\'ve...',
-      time: '10:00 am',
-      read: false,
-      online: true
-    },
-    {
-      id: '2',
-      name: 'Alfredo Saris',
-      avatar: 'https://i.pravatar.cc/150?img=2',
-      lastMessage: 'Hello, Good Morning Bro!',
-      time: '09:00 am',
-      read: false,
-      online: false
-    },
-    {
-      id: '3',
-      name: 'Jaylon Franci',
-      avatar: 'https://i.pravatar.cc/150?img=3',
-      lastMessage: 'Everything\'s good.',
-      time: '08:30 am',
-      read: true,
-      online: true
-    },
-    {
-      id: '4',
-      name: 'Tatiana Dorwart',
-      avatar: 'https://i.pravatar.cc/150?img=4',
-      lastMessage: 'Okay! Thanks!',
-      time: '08:10 am',
-      read: true,
-      online: false
-    },
-    {
-      id: '5',
-      name: 'Terry Bergson',
-      avatar: 'https://i.pravatar.cc/150?img=5',
-      lastMessage: 'Sure thing!',
-      time: '07:45 am',
-      read: true,
-      online: false
-    },
-    {
-      id: '6',
-      name: 'Michael Chen',
-      avatar: 'https://i.pravatar.cc/150?img=8',
-      lastMessage: 'See you tomorrow!',
-      time: '06:30 am',
-      read: false,
-      online: true
-    },
-    {
-      id: '7',
-      name: 'Sarah Johnson',
-      avatar: 'https://i.pravatar.cc/150?img=9',
-      lastMessage: 'That sounds great!',
-      time: '05:15 am',
-      read: true,
-      online: false
-    },
-    {
-      id: '8',
-      name: 'David Wong',
-      avatar: 'https://i.pravatar.cc/150?img=11',
-      lastMessage: 'Let me know when you\'re free',
-      time: 'Yesterday',
-      read: true,
-      online: true
-    },
-  ];
+  const contacts = []; // Your existing contacts array
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem('@access_token');
+        console.log('Retrieved token:', storedToken ? 'Token found' : 'No token');
+        setToken(storedToken);
+      } catch (e) {
+        console.error('Failed to load user data:', e);
+      }
+    };
+    fetchUserData();
+  }, []);
+
+  // Fetch friends when token is available
+  useEffect(() => {
+    if (token) {
+      fetchFriends();
+    }
+  }, [token]);
+
+  // Fetch friends function
+  const fetchFriends = async () => {
+    if (!token) {
+      console.log('No token available for fetching friends');
+      return;
+    }
+   
+    setIsLoadingFriends(true);
+    try {
+      console.log('Fetching friends with token...');
+      const response = await getFriends(token);
+      console.log('Friends API response:', response);
+
+      if (response?.data && Array.isArray(response.data)) {
+        console.log('Friends data:', response);
+        const mappedFriends = response.data.map((friend) => ({
+          id: friend.id,
+          name: friend.full_name,
+          code: friend.friend_code,
+          email: friend.email,
+          profile_photo: friend.profile_photo,
+        }));
+        console.log('Mapped friends:', mappedFriends);
+        setFriends(mappedFriends);
+      } else {
+        console.log('No friends data in response or invalid format');
+        setFriends([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch friends:', error);
+      setFriends([]);
+    } finally {
+      setIsLoadingFriends(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchFriends();
+    setRefreshing(false);
+  };
+
 
   const filteredContacts = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -96,6 +95,31 @@ const DirectMessageScreen = ({ navigation }) => {
       contact.name.toLowerCase().includes(query)
     );
   }, [searchQuery, contacts]);
+
+  const filteredFriends = useMemo(() => {
+    console.log('Filtering friends. Total friends:', friends.length, 'Search query:', modalSearchQuery);
+    if (!modalSearchQuery.trim()) {
+      return friends; // Show all friends when no search query
+    }
+    const query = modalSearchQuery.toLowerCase().trim();
+    const filtered = friends.filter(friend =>
+      friend.name.toLowerCase().includes(query)
+    );
+    console.log('Filtered friends:', filtered.length);
+    return filtered;
+  }, [modalSearchQuery, friends]);
+
+  const handleStartChat = (friend) => {
+    console.log('Starting chat with:', friend.name);
+    setShowFriendModal(false);
+    setModalSearchQuery(''); // Clear modal search when closing
+    navigation.navigate('Chat', {
+      id: friend.id,
+      name: friend.name,
+      avatar: friend.profile_photo,
+      online: friend.online || false
+    });
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -141,7 +165,6 @@ const DirectMessageScreen = ({ navigation }) => {
       borderRadius: 25,
       flexDirection: 'row',
       alignItems: 'center',
-      // marginRight: 10,
     },
     searchInput: {
       color: colors.text,
@@ -244,6 +267,96 @@ const DirectMessageScreen = ({ navigation }) => {
       alignItems: 'center',
       elevation: 5,
     },
+    // Modal styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContainer: {
+      backgroundColor: colors.background,
+      borderRadius: 20,
+      width: width * 0.9,
+      maxHeight: height * 0.8, // Increased from 0.7 to 0.8
+      overflow: 'hidden',
+    },
+    modalHeader: {
+      backgroundColor: colors.primary,
+      padding: 20,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+    },
+    modalHeaderContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    closeButton: {
+      padding: 5,
+    },
+    modalSearchContainer: {
+      padding: 15,
+      backgroundColor: colors.background,
+    },
+    modalSearchInput: {
+      backgroundColor: colors.card,
+      borderRadius: 25,
+      paddingHorizontal: 15,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: colors.text,
+    },
+    modalListContainer: {
+      paddingHorizontal: 15,
+      paddingBottom: 20, // Add bottom padding
+    },
+    friendItem: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 15,
+      marginVertical: 5,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    friendAvatar: {
+      width: 45,
+      height: 45,
+      borderRadius: 22.5,
+      marginRight: 15,
+      backgroundColor: colors.primary,
+    },
+    friendInfo: {
+      flex: 1,
+    },
+    friendName: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 3,
+    },
+    friendCode: {
+      fontSize: 12,
+      color: colors.text,
+      opacity: 0.6,
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 40,
+    },
+    emptyStateText: {
+      fontSize: 16,
+      color: colors.text,
+      opacity: 0.6,
+      textAlign: 'center',
+    },
   });
 
   const renderContactItem = ({ item }) => (
@@ -254,13 +367,19 @@ const DirectMessageScreen = ({ navigation }) => {
         navigation.navigate('Chat', {
           id: item.id,
           name: item.name,
-          avatar: item.avatar,
-          online: item.online
+
         });
       }}
     >
       <View style={styles.messageAvatar}>
-        <Image source={{ uri: item.avatar }} style={styles.avatar} />
+        {item.profile_photo ? (
+          <Image source={{ uri: item.profile_photo }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, { backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' }]}>
+            <Icon name="person-outline" size={24} color="#fff" />
+          </View>
+        )}
+
         {item.online && (
           <View style={styles.onlineIndicator} />
         )}
@@ -288,9 +407,48 @@ const DirectMessageScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
+  const renderFriendItem = ({ item }) => {
+    console.log('Rendering friend item:', item.name);
+    return (
+      <TouchableOpacity
+        style={styles.friendItem}
+        onPress={() => handleStartChat(item)}
+      >
+        {item.profile_photo ? (
+          <Image 
+            source={{ uri: item.profile_photo }} 
+            style={styles.friendAvatar} 
+          />
+        ) : (
+          <View style={[styles.friendAvatar, { backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' }]}>
+            <Icon name="person-outline" size={20} color="#fff" />
+          </View>
+        )}
+        <View style={styles.friendInfo}>
+          <Text style={styles.friendName}>{item.name}</Text>
+          <Text style={styles.friendCode}>#{item.code}</Text>
+        </View>
+        <Icon name="chatbubble-outline" size={20} color={colors.primary} />
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.mainContainer}>
+      <View style={styles.mainContainer} refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+          progressBackgroundColor={colors.background}
+          style={{
+            zIndex: 1000,
+            backgroundColor: colors.primary,
+          }}
+          scrollEnabled = {false}
+        />
+      }>
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <Text style={styles.title}>Direct Messages</Text>
@@ -298,7 +456,7 @@ const DirectMessageScreen = ({ navigation }) => {
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Icon name="ellipsis-vertical" size={24} color="#fff" />
+              {/* <Icon name="ellipsis-vertical" size={24} color="#fff" /> */}
             </TouchableOpacity>
           </View>
         </View>
@@ -333,19 +491,106 @@ const DirectMessageScreen = ({ navigation }) => {
             renderItem={renderContactItem}
             keyExtractor={item => item.id}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+                progressBackgroundColor={colors.background}
+                style={{
+                  zIndex: 1000,
+                  backgroundColor: colors.primary,
+                }}
+                scrollEnabled={false}
+              />
+            }
           />
         </View>
-
-        <TouchableOpacity 
-          style={styles.newMessageButton}
-          onPress={() => {
-            console.log('New message button pressed');
-            // Add your new message logic here
-          }}
-        >
-          <Icon name="create" size={24} color="#fff" />
-        </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={styles.newMessageButton}
+        onPress={() => {
+          // Only fetch friends if we don't have them already or if we want to refresh
+          if (friends.length === 0 && token) {
+            fetchFriends();
+          }
+          setModalSearchQuery(''); // Clear search when opening modal
+          setShowFriendModal(true);
+        }}
+      >
+        <Icon name="create" size={24} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Friend Selection Modal */}
+      <Modal
+        visible={showFriendModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowFriendModal(false);
+          setModalSearchQuery(''); // Clear search when closing via back button
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderContent}>
+                <Text style={styles.modalTitle}>Start New Chat</Text>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => {
+                    setShowFriendModal(false);
+                    setModalSearchQuery(''); // Clear search when closing
+                  }}
+                >
+                  <Icon name="close" size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.modalSearchContainer}>
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Search friends..."
+                placeholderTextColor={isDarkMode ? "#aaa" : "#888"}
+                value={modalSearchQuery}
+                onChangeText={setModalSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.modalListContainer}>
+              {isLoadingFriends ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>Loading friends...</Text>
+                </View>
+              ) : filteredFriends.length > 0 ? (
+                <FlatList
+                  
+                  data={filteredFriends}
+                  renderItem={renderFriendItem}
+                  keyExtractor={item => item.id}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 10 }} // Add content padding
+                />
+              ) : (
+                <View style={styles.emptyState}>
+                  <Icon name="people-outline" size={48} color={colors.text} style={{ opacity: 0.3 }} />
+                  <Text style={styles.emptyStateText}>
+                    {friends.length === 0 
+                      ? "No friends found.\nAdd some friends to start chatting!" 
+                      : "No friends match your search."}
+                  </Text>
+                </View>
+              )}
+            </View>
+            {/* <Text>Hello</Text> */}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

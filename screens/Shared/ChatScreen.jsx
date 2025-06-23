@@ -16,7 +16,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
-
+import { directChatApi } from '../../helpers/postAPIs';
+import { getAllMessages } from '../../helpers/getAPIs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 const { width, height } = Dimensions.get('window');
@@ -27,8 +29,14 @@ const ChatScreen = () => {
   const route = useRoute();
   
   // Get contact information from navigation params
-  const { id, name, avatar, isGroup = false } = route.params || {};
-  
+  const { id, name, avatar, isGroup = false, friend_code } = route.params || {};
+  console.log(friend_code, 'friend_code');
+  console.log(id, 'id');
+  console.log(name, 'name');
+  console.log(avatar, 'avatar');
+  console.log(isGroup, 'isGroup');
+  const [token, setToken] = useState(null);
+
   const [message, setMessage] = useState('');
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [messages, setMessages] = useState([
@@ -38,6 +46,38 @@ const ChatScreen = () => {
   const flatListRef = useRef(null);
 
   // Use contact data from navigation params or fallback to default
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem('@access_token');
+        setToken(storedToken);
+        console.log(storedToken, 'storedToken');
+        // const name = await AsyncStorage.getItem('@full_name');
+        // const profilePic = await AsyncStorage.getItem('@profile_image');
+        // if (name) setFullName(name);
+        // if (profilePic) setProfileImage(profilePic);
+      } catch (e) {
+        console.error('Failed to load user data:', e);
+      }
+    };
+    fetchUserData();
+  }, []);
+
+// Get all messages
+useEffect(() => {
+  const fetchMessages = async () => {
+    const userData = {
+      friend_code: friend_code
+    }
+    const messages = await getAllMessages(token, userData);
+    console.log(messages, 'messages');
+    setMessages(messages);
+  };
+  fetchMessages();
+}, [token, friend_code]);
+
+
+
   const contactData = {
     name: name || 'Contact',
     avatar: avatar || null,
@@ -371,7 +411,15 @@ const ChatScreen = () => {
     };
   }, [messages]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
+    const userData = {
+      friend_code: friend_code,
+      content: message
+    }
+    const response = await directChatApi(token, userData);
+    console.log(response, 'response');
+    setMessage('');
+
     if (message.trim() === '') return;
     
     const newMessage = {
@@ -385,42 +433,42 @@ const ChatScreen = () => {
     setMessages([...messages, newMessage]);
     setMessage('');
     
-    // Simulate message delivery and read status
-    setTimeout(() => {
-      setMessages(prevMessages => 
-        prevMessages.map(msg => 
-          msg.id === newMessage.id 
-            ? { ...msg, status: 'sent' }
-            : msg
-        )
-      );
-    }, 1000);
+    // // Simulate message delivery and read status
+    // setTimeout(() => {
+    //   setMessages(prevMessages => 
+    //     prevMessages.map(msg => 
+    //       msg.id === newMessage.id 
+    //         ? { ...msg, status: 'sent' }
+    //         : msg
+    //     )
+    //   );
+    // }, 1000);
 
-    setTimeout(() => {
-      setMessages(prevMessages => 
-        prevMessages.map(msg => 
-          msg.id === newMessage.id 
-            ? { ...msg, status: 'delivered' }
-            : msg
-        )
-      );
-    }, 2000);
+    // setTimeout(() => {
+    //   setMessages(prevMessages => 
+    //     prevMessages.map(msg => 
+    //       msg.id === newMessage.id 
+    //         ? { ...msg, status: 'delivered' }
+    //         : msg
+    //     )
+    //   );
+    // }, 2000);
 
-    setTimeout(() => {
-      setMessages(prevMessages => 
-        prevMessages.map(msg => 
-          msg.id === newMessage.id 
-            ? { ...msg, status: 'read' }
-            : msg
-        )
-      );
-    }, 3000);
+    // setTimeout(() => {
+    //   setMessages(prevMessages => 
+    //     prevMessages.map(msg => 
+    //       msg.id === newMessage.id 
+    //         ? { ...msg, status: 'read' }
+    //         : msg
+    //     )
+    //   );
+    // }, 3000);
     
-    setTimeout(() => {
-      if (flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: true });
-      }
-    }, 100);
+    // setTimeout(() => {
+    //   if (flatListRef.current) {
+    //     flatListRef.current.scrollToEnd({ animated: true });
+    //   }
+    // }, 100);
   };
 
   const renderMessageStatus = (status) => {

@@ -35,6 +35,7 @@ const ProfileScreen = ({ navigation }) => {
         fullName: '',
         email: '',
         phone: '',
+        friendCode: '',
         bio: 'Hey there! I am using this chat app.',
         profileImage: null,
     });
@@ -90,6 +91,7 @@ const ProfileScreen = ({ navigation }) => {
                     fullName: response.data.full_name || '',
                     email: response.data.email || '',
                     phone: response.data.phone || '',
+                    friendCode: response.data.friend_code || '',
                     bio: response.data.bio || 'Hey there! I am using this chat app.',
                     profileImage: response.data.profile_photo || null,
                 });
@@ -363,26 +365,26 @@ const ProfileScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
-    const SettingItem = ({ icon, label, value, onToggle, type = 'switch' }) => (
-        <View style={styles.profileItem}>
-            <View style={styles.profileItemLeft}>
-                <Icon name={icon} size={22} color={colors.primary} style={styles.profileItemIcon} />
-                <Text style={[styles.profileItemLabel, { color: colors.text }]}>{label}</Text>
-            </View>
-            {type === 'switch' ? (
-                <Switch
-                    value={value}
-                    onValueChange={onToggle}
-                    trackColor={{ false: colors.border, true: colors.primary }}
-                    thumbColor={value ? '#fff' : '#f4f3f4'}
-                />
-            ) : (
-                <TouchableOpacity onPress={onToggle}>
-                    <Text style={[styles.settingValue, { color: colors.primary }]}>{value}</Text>
-                </TouchableOpacity>
-            )}
-        </View>
-    );
+    // const SettingItem = ({ icon, label, value, onToggle, type = 'switch' }) => (
+    //     <View style={styles.profileItem}>
+    //         <View style={styles.profileItemLeft}>
+    //             <Icon name={icon} size={22} color={colors.primary} style={styles.profileItemIcon} />
+    //             <Text style={[styles.profileItemLabel, { color: colors.text }]}>{label}</Text>
+    //         </View>
+    //         {type === 'switch' ? (
+    //             <Switch
+    //                 value={value}
+    //                 onValueChange={onToggle}
+    //                 trackColor={{ false: colors.border, true: colors.primary }}
+    //                 thumbColor={value ? '#fff' : '#f4f3f4'}
+    //             />
+    //         ) : (
+    //             <TouchableOpacity onPress={onToggle}>
+    //                 <Text style={[styles.settingValue, { color: colors.primary }]}>{value}</Text>
+    //             </TouchableOpacity>
+    //         )}
+    //     </View>
+    // );
 
     const styles = StyleSheet.create({
         container: {
@@ -690,7 +692,7 @@ const ProfileScreen = ({ navigation }) => {
                         {profileData.email || 'your.email@example.com'}
                     </Text>
 
-                    <View style={styles.onlineStatusContainer}>
+                    {/* <View style={styles.onlineStatusContainer}>
                         <View style={{
                             width: 8,
                             height: 8,
@@ -700,7 +702,7 @@ const ProfileScreen = ({ navigation }) => {
                         <Text style={styles.onlineText}>
                             {onlineStatus ? 'Online' : 'Offline'}
                         </Text>
-                    </View>
+                    </View> */}
                 </View>
 
                 <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -710,7 +712,10 @@ const ProfileScreen = ({ navigation }) => {
                             icon="person-outline"
                             label="Full Name"
                             value={profileData.fullName || 'Not set'}
-                            onPress={() => handleEditField('fullName', profileData.fullName)}
+                            // onPress={() => handleEditField('fullName', profileData.fullName)}
+                            onPress={() => { }}
+                            editable={false}
+                            showChevron={false}
                         />
                         <ProfileItem
                             icon="code-slash-outline"

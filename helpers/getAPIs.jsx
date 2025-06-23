@@ -39,3 +39,45 @@ export const getFriendRequests = async (token) => {
   }
 }
 
+// Get all groups
+export const getAllGroups = async (token) => {
+  try {
+    const response = await axios.get(`${BASE_URL}chat/groups/`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    return response.data
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+// // Get all group members
+export const getAllGroupMembers = async (token, groupId) => {
+  try {
+    const response = await axios.get(`${BASE_URL}chat/group-members/${groupId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    return response.data
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+// Get all messages
+export const getAllMessages = async (token, userData) => {
+  try {
+    const response = await axios.get(`${BASE_URL}chat/messages/?group_id=${userData.group_id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    return response.data
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
